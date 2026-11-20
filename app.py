@@ -443,7 +443,11 @@ def recibir_mensajes():
                     ref_producto = event["postback"].get("referral", {}).get("ref", "")
                     mensaje_armado = f"{titulo_boton} (Referencia de publicación: {ref_producto})" if ref_producto else titulo_boton
                     if mensaje_armado:
-                        procesar_respuesta_bot(sender_id, mensaje_armado)
+                        threading.Thread(
+                            target=procesar_respuesta_bot,
+                            args=(sender_id, mensaje_armado),
+                            daemon=True
+                        ).start()
                     continue
 
                 if event.get("message") and not event["message"].get("is_echo"):
@@ -458,11 +462,17 @@ def recibir_mensajes():
 
                     if texto or contexto_producto:
                         mensaje_final = f"{texto}{contexto_producto}".strip()
-                        procesar_respuesta_bot(sender_id, mensaje_final)
+                        threading.Thread(
+                            target=procesar_respuesta_bot,
+                            args=(sender_id, mensaje_final),
+                            daemon=True
+                        ).start()
                     elif adjuntos:
-                        enviar_a_messenger(sender_id, {
-                            "text": "Recibí tu archivo. ¿Me cuentas por texto qué referencia te gustaría cotizar o pedir?"
-                        })
+                        threading.Thread(
+                            target=enviar_a_messenger,
+                            args=(sender_id, {"text": "Recibí tu archivo. ¿Me cuentas por texto qué referencia te gustaría cotizar o pedir?"}),
+                            daemon=True
+                        ).start()
 
         return "EVENT_RECEIVED", 200
     return "Not Found", 404
