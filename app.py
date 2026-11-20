@@ -225,7 +225,7 @@ def clasificar_y_guardar_embudo(sender_id, evento_forzado=None):
     """
     try:
         resp = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             contents=prompt,
             config=types.GenerateContentConfig(temperature=0.0)
         )
@@ -266,7 +266,7 @@ def extraer_resumen_datos(historial_texto, tipo_evento):
     """
     try:
         resp = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             contents=prompt,
             config=types.GenerateContentConfig(temperature=0.0)
         )
@@ -313,7 +313,7 @@ def procesar_respuesta_bot(sender_id, mensaje_usuario):
     if sender_id not in sesiones_chat:
         sesiones_chat[sender_id] = {
             "chat": client.chats.create(
-                model="gemini-2.5-flash",
+                model="gemini-3.8-flash",
                 config=types.GenerateContentConfig(
                     system_instruction=INSTRUCCIONES_SISTEMA,
                     temperature=0.1,
