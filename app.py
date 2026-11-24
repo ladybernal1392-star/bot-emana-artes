@@ -81,7 +81,7 @@ https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Pampas%20Sala%2
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Pampas%20Sala.jpg
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Pampas%20en%20Cantidad.jpeg
 - Video:
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Pampas%20Video.mp4
+https://www.instagram.com/reel/DeiSH9SNaiy/?jplx=M3dsemJvbG9vZzFh
 
 2. Jarrón en Mimbre 40 cm
 - Precio: $40.000 COP por unidad.
