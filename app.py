@@ -24,19 +24,23 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 CALLMEBOT_PHONE = os.environ.get("CALLMEBOT_PHONE", "")
 CALLMEBOT_APIKEY = os.environ.get("CALLMEBOT_APIKEY", "")
 
+# WhatsApp Atención Personalizada
+WHATSAPP_ATENCION = "https://wa.me/573229640360"
+
 # Google Sheets
 GOOGLE_SHEETS_CREDENTIALS = os.environ.get("GOOGLE_SHEETS_CREDENTIALS", "")
 SPREADSHEET_NAME = os.environ.get("SPREADSHEET_NAME", "Control_Ventas_Bot")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# Memoria de sesiones, control de pausas y temporizadores de embudo
+# Memoria de sesiones, control de pausas y temporizadores de embudo/remarketing
 sesiones_chat = {}
 chats_pausados = set()
 clientes_contados_hoy = set()
 temporizadores_embudo = {}
+temporizadores_remarketing = {}
 
-# --- CATÁLOGO Y REGLAS DE NEGOCIO (4 CANDADOS INTEGRADOS) ---
+# --- CATÁLOGO Y REGLAS DE NEGOCIO (CANDADOS INTEGRADOS) ---
 INSTRUCCIONES_SISTEMA = """
 Eres un asesor comercial amable, cercano y persuasivo de Emana Artes, una tienda de decoración en Bogotá, Colombia.
 Respondes mensajes en Facebook Messenger. Adapta tu tono al cliente (cercano y respetuoso), usa párrafos cortos y claros.
@@ -45,13 +49,14 @@ Respondes mensajes en Facebook Messenger. Adapta tu tono al cliente (cercano y r
 1. CATÁLOGO CERRADO: Solo puedes vender los productos, medidas, colores y precios exactos listados abajo. JAMÁS inventes productos, medidas, descuentos ni promociones que no estén escritos aquí.
 2. COBERTURA GEOGRÁFICA (BOGOTÁ Y SOACHA): Solo gestionas entregas directas en Bogotá D.C. y Soacha. Si el cliente pide envío a cualquier otra ciudad o municipio fuera de Bogotá/Soacha:
   - NO inventes tarifas ni tiempos de envío nacional.
-  - Pídele amablemente su ciudad/municipio y su número de WhatsApp para que el encargado de ventas nacionales le cotice el despacho.
+  - Pídele amablemente su ciudad/municipio y su número de WhatsApp para que el encargado de ventas nacionales le cotice el despacho, o compártele nuestro WhatsApp de atención personalizada: https://wa.me/573229640360
   - SOLO cuando el cliente te haya entregado su ciudad y su número de WhatsApp, despídete indicando que un asesor nacional lo contactará de inmediato y escribe al final la etiqueta exacta: [ENVIO_NACIONAL]
 3. REGLA DE MAYORISTAS (12 O MÁS UNIDADES): Se considera venta al por mayor a partir de 12 unidades de cualquier producto (incluidas las Pampas Eternizadas). Si piden precio al por mayor o 12 o más unidades:
   - NO des precios mayoristas ni descuentos especiales.
-  - Pídele amablemente su nombre completo, producto/cantidad aproximada y número de WhatsApp.
+  - Pídele amablemente su nombre completo, producto/cantidad aproximada y número de WhatsApp, o compártele el enlace de WhatsApp: https://wa.me/573229640360
   - SOLO cuando el cliente te entregue esos datos, indícale que un asesor comercial lo contactará y escribe al final la etiqueta exacta: [MAYORISTA]
 4. LIQUIDACIÓN Y CIERRE DE PEDIDOS (BOGOTÁ / SOACHA):
+  - Recuerda mencionar siempre como beneficio que en Bogotá D.C. y Soacha manejamos **pago contraentrega** (pagas al recibir tu pedido en casa).
   - Calcula siempre el subtotal exacto según cantidad y precio unitario.
   - Costo de domicilio: Bogotá D.C. = $10.000 COP | Soacha = $15.000 COP.
   - ENVÍO GRATIS: Si el subtotal en productos es MAYOR a $250.000 COP, el domicilio es $0 (Gratis).
@@ -59,6 +64,13 @@ Respondes mensajes en Facebook Messenger. Adapta tu tono al cliente (cercano y r
   - Para confirmar un pedido solicita: Nombre completo, Dirección exacta en Bogotá o Soacha (con barrio), Número de WhatsApp y Método de pago.
   - SOLO cuando el cliente confirme el pedido y haya entregado todos esos datos, despídete confirmando que su pedido quedó agendado y escribe al final la etiqueta exacta: [VENTA_CONFIRMADA]
   - POST-VENTA Y DUDAS POSTERIORES: Si el cliente vuelve a escribir después de haber confirmado su pedido (para preguntar por horarios, medios de pago o estado), respóndele amablemente usando los datos que ya te entregó sin volver a pedirlos ni repetir la etiqueta [VENTA_CONFIRMADA]. Emite [VENTA_CONFIRMADA] nuevamente SOLO si el cliente pide modificar o agregar productos a su pedido ya confirmado.
+5. ATENCIÓN ESPECIALIZADA (COJINES POR COLOR/MODELO ESPECÍFICO O ASESORÍA PERSONALIZADA):
+  - Si el cliente pide un color, textura o diseño específico de los cojines decorativos (para verificar disponibilidad puntual en bodega), o solicita atención personalizada/especializada:
+  - Infórmale con amabilidad que un asesor especializado verificará disponibilidad exacta y le enviará opciones disponibles.
+  - Compártele nuestro WhatsApp directo de atención personalizada: https://wa.me/573229640360 e indícale que también puede dejarnos su nombre y WhatsApp por aquí para escribirle de inmediato.
+  - Escribe al final de esa respuesta la etiqueta exacta: [ATENCION_ESPECIALIZADA]
+6. DETECCIÓN DE RECHAZO O DESINTERÉS:
+  - Si el cliente indica explícitamente que no está interesado, que le parece muy caro, que no lo quiere o que desiste de la compra, despídete de forma muy cordial dejando las puertas abiertas (y nuestro WhatsApp https://wa.me/573229640360 por si más adelante se anima) y escribe al final la etiqueta exacta: [NO_INTERESADO]
 
 === ENVÍO DE FOTOS Y VIDEOS ===
 Cuando el cliente pida ver fotos, videos o detalles visuales de un producto (o pregunte si sigue disponible), incluye en tu respuesta las etiquetas correspondientes usando únicamente estas URLs exactas:
@@ -67,8 +79,10 @@ Cuando el cliente pida ver fotos, videos o detalles visuales de un producto (o p
 (Envía máximo 2 fotos por mensaje para no saturar el chat, o el video si piden ver el movimiento/tamaño real).
 
 === REGLAS DE ENTREGA Y PAGOS ===
+- Pago contraentrega: En Bogotá D.C. y Soacha realizamos pagos 100% contraentrega (pagas al momento de recibir el producto).
 - Tiempos de entrega: Entrega al día hábil siguiente si se confirma el pedido antes de las 6:00 PM (sujeto a cantidad de pedidos en cola).
-- Métodos de pago: Pago contraentrega en Bogotá y Soacha mediante efectivo, QR, Bre-B, Nequi, Daviplata o transferencia Bancolombia.
+- Métodos de pago contraentrega: Efectivo, QR, Bre-B, Nequi, Daviplata o transferencia Bancolombia.
+- Atención personalizada por WhatsApp: https://wa.me/573229640360
 
 === CATÁLOGO OFICIAL DE PRODUCTOS ===
 
@@ -122,7 +136,7 @@ Cuando el cliente pida ver fotos, videos o detalles visuales de un producto (o p
 
 6. Lámpara Boho Mimbre 40 cm
 - Precio: $45.000 COP por unidad.
-- Características: Tejida 100% a mano en mimbre natural, altura 40 cm, color natural. IMPORTANTE: NO incluye plafón del techo ni bombillo.
+- Características: Tejida 100% a mano en mimbre natural, altura 40 cm, color natural. Incluye cable de 70 cm. IMPORTANTE: NO incluye plafón del techo ni bombillo.
 - Fotos:
   https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/lampara%20en%20mimbre%20Sala.jpg
   https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/lampara%20en%20mimbre%20comedor.jpg
@@ -133,6 +147,7 @@ Cuando el cliente pida ver fotos, videos o detalles visuales de un producto (o p
   - De 3 a 11 unidades: $25.000 COP cada uno.
 - Características: Funda extraíble para fácil lavado, medidas 48 cm x 48 cm.
 - Estilos/texturas: Tela suave con acabado marmolado y vetas doradas, tela acanalada ultra suave, peluche peludo de pelo largo y diseños estampados de temporada.
+- Nota importante: Si el cliente pide un color o modelo específico, activa la regla 5 ([ATENCION_ESPECIALIZADA]).
 - Fotos:
   https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Cojines%20Variedad-1.jpeg
   https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Cojines%20Variedad-2.jpeg
@@ -140,8 +155,9 @@ Cuando el cliente pida ver fotos, videos o detalles visuales de un producto (o p
   https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Cojines%20Variedad.jpeg
   
 === PREGUNTAS FRECUENTES ===
-- Tienda física / Ubicación: Somos tienda virtual con bodega en Bogotá; realizamos únicamente despachos a domicilio (no tenemos punto físico).
+- Tienda física / Ubicación: Somos tienda virtual con bodega en Bogotá; realizamos únicamente despachos a domicilio con pago contraentrega en Bogotá y Soacha (no tenemos punto físico).
 - Cambios o devoluciones: Se aceptan dentro de los 5 días calendario siguientes a la entrega únicamente por defectos de fábrica, sin uso y en su empaque original.
+- Contacto directo WhatsApp: https://wa.me/573229640360
 """
 
 def hora_colombia():
@@ -217,7 +233,7 @@ def clasificar_y_guardar_embudo(sender_id, evento_forzado=None):
 - "2_SOLO_PRECIO_SIN_RESPUESTA" (si el cliente envió solo 1 mensaje inicial como '¿sigue disponible?' o 'precio' y nunca más respondió)
 - "3_COTIZO_PERO_NO_CONCRETO" (si el cliente envió 2 o más mensajes conversando o cotizando envío/fotos, pero abandonó antes de cerrar compra)
 - "4_DERIVADO_NACIONAL" (si el evento fue ENVIO_NACIONAL o pidió envío fuera de Bogotá/Soacha)
-- "5_DERIVADO_MAYORISTA" (si el evento fue MAYORISTA o pidió 12+ unidades)
+- "5_DERIVADO_MAYORISTA" (si el evento fue MAYORISTA, ATENCION_ESPECIALIZADA o pidió 12+ unidades)
 
     Campos JSON requeridos:
 - "producto_interes": (Ej: Pampas Eternizadas, Jarrón 60cm, Cojines, etc.)
@@ -255,6 +271,62 @@ def reiniciar_temporizador_embudo(sender_id):
     timer.daemon = True
     timer.start()
     temporizadores_embudo[sender_id] = timer
+
+def cancelar_remarketing(sender_id):
+    """Cancela cualquier mensaje de remarketing pendiente para el cliente."""
+    timers = temporizadores_remarketing.pop(sender_id, None)
+    if timers:
+        for t in timers.values():
+            t.cancel()
+
+def enviar_mensaje_remarketing(sender_id, toque):
+    """Envía el mensaje de recuperación a 1 hora (toque 1) o a 24 horas (toque 2) si sigue sin cerrar venta."""
+    sesion = sesiones_chat.get(sender_id)
+    if not sesion or sender_id in chats_pausados:
+        return
+    if sesion.get("venta_registrada") or sesion.get("no_interesado") or sesion.get("derivado"):
+        return
+
+    if toque == 1:
+        mensaje_rmk = (
+            "¡Hola! 👋 Pasaba por aquí para saber si te quedó alguna duda sobre los productos de *Emana Artes* que estuvimos viendo. ✨\n\n"
+            "Recuerda que en *Bogotá y Soacha manejamos pago 100% contraentrega* (pagas al recibir tu pedido en casa). "
+            "Si deseas que te ayude a agendar tu entrega o prefieres atención personalizada por WhatsApp, escríbenos aquí: https://wa.me/573229640360"
+        )
+    else:
+        mensaje_rmk = (
+            "¡Hola nuevamente! 😊 Queríamos contarte que aún tenemos unidades disponibles de nuestra colección en *Emana Artes*.\n\n"
+            "Si te gustaría recibir tu pedido mañana mismo con *pago contraentrega en Bogotá o Soacha*, respóndeme por aquí y lo dejamos agendado, "
+            "o contáctanos directamente por WhatsApp: https://wa.me/573229640360 🌿"
+        )
+
+    enviar_a_messenger(sender_id, {"text": mensaje_rmk})
+    sesion["historial"].append(f"Bot (Remarketing {toque}): {mensaje_rmk}")
+
+def programar_remarketing(sender_id):
+    """Programa toque 1 a 1 hora del último mensaje y toque 2 a 23.5 horas del chat inicial."""
+    sesion = sesiones_chat.get(sender_id)
+    if not sesion or sesion.get("venta_registrada") or sesion.get("no_interesado") or sesion.get("derivado"):
+        cancelar_remarketing(sender_id)
+        return
+
+    if sender_id not in temporizadores_remarketing:
+        temporizadores_remarketing[sender_id] = {}
+
+    # Reiniciar Toque 1: 1 hora (3600 segundos) después del último mensaje sin cierre
+    if "toque_1" in temporizadores_remarketing[sender_id]:
+        temporizadores_remarketing[sender_id]["toque_1"].cancel()
+    t1 = threading.Timer(3600.0, enviar_mensaje_remarketing, args=[sender_id, 1])
+    t1.daemon = True
+    t1.start()
+    temporizadores_remarketing[sender_id]["toque_1"] = t1
+
+    # Programar Toque 2 una sola vez desde el inicio de la conversación (84600 seg = 23.5h para cumplir ventana 24h de Meta)
+    if "toque_2" not in temporizadores_remarketing[sender_id]:
+        t2 = threading.Timer(84600.0, enviar_mensaje_remarketing, args=[sender_id, 2])
+        t2.daemon = True
+        t2.start()
+        temporizadores_remarketing[sender_id]["toque_2"] = t2
 
 def extraer_resumen_datos(historial_texto, tipo_evento):
     prompt = f"""
@@ -314,6 +386,66 @@ def enviar_a_messenger(recipient_id, payload_message):
     if resp.status_code != 200:
         print(f"Error Messenger API: {resp.text}")
 
+def configurar_menu_messenger():
+    """Configura el botón persistente 'Venta Especializada' en el menú de Messenger."""
+    if not PAGE_ACCESS_TOKEN:
+        return
+    url = f"https://graph.facebook.com/v21.0/me/messenger_profile?access_token={PAGE_ACCESS_TOKEN}"
+    payload = {
+        "get_started": {"payload": "INICIAR_CHAT"},
+        "persistent_menu": [
+            {
+                "locale": "default",
+                "composer_input_disabled": False,
+                "call_to_actions": [
+                    {
+                        "type": "postback",
+                        "title": "Venta Especializada",
+                        "payload": "VENTA_ESPECIALIZADA_BTN"
+                    },
+                    {
+                        "type": "web_url",
+                        "title": "WhatsApp Personalizado",
+                        "url": WHATSAPP_ATENCION,
+                        "webview_height_ratio": "full"
+                    }
+                ]
+            }
+        ]
+    }
+    try:
+        requests.post(url, json=payload, timeout=10)
+    except Exception as e:
+        print(f"Error configurando menú Messenger: {e}")
+
+def activar_atencion_especializada(sender_id, motivo="Botón Venta Especializada"):
+    """Pausa el bot, alerta a Telegram y entrega enlace de WhatsApp al cliente."""
+    cancelar_remarketing(sender_id)
+    if sender_id in temporizadores_embudo:
+        temporizadores_embudo[sender_id].cancel()
+
+    chats_pausados.add(sender_id)
+    if sender_id in sesiones_chat:
+        sesiones_chat[sender_id]["derivado"] = True
+
+    mensaje_cliente = (
+        "¡Con mucho gusto! ✨ He transferido tu solicitud a nuestro equipo de *Atención Especializada* de Emana Artes. "
+        "Un asesor te responderá por aquí en un momento.\n\n"
+        f"Si deseas atención inmediata por WhatsApp, haz clic aquí: {WHATSAPP_ATENCION}"
+    )
+    enviar_a_messenger(sender_id, {"text": mensaje_cliente})
+
+    resumen_msg = (
+        f"📌 *Motivo:* {motivo}\n"
+        f"🆔 *ID Messenger:* {sender_id}\n"
+        f"💡 *Nota:* Bot pausado en este chat. Escribe `/activar` en Messenger cuando termines de atender."
+    )
+    enviar_alertas("SOLICITUD DE VENTA ESPECIALIZADA", resumen_msg)
+    registrar_en_sheets("Interacciones_y_Mayoristas", [
+        hora_colombia(), "VENTA ESPECIALIZADA", sender_id, "Por confirmar",
+        "Por confirmar", "Bogotá/Soacha", motivo
+    ])
+
 def procesar_respuesta_bot(sender_id, mensaje_usuario):
     if sender_id not in sesiones_chat:
         sesiones_chat[sender_id] = {
@@ -325,7 +457,10 @@ def procesar_respuesta_bot(sender_id, mensaje_usuario):
                 )
             ),
             "historial": [],
-            "clasificado": False
+            "clasificado": False,
+            "venta_registrada": False,
+            "no_interesado": False,
+            "derivado": False
         }
 
     sesion = sesiones_chat[sender_id]
@@ -350,6 +485,12 @@ def procesar_respuesta_bot(sender_id, mensaje_usuario):
     elif "[ENVIO_NACIONAL]" in texto_ia:
         evento_detectado = "ENVIO_NACIONAL"
         texto_ia = texto_ia.replace("[ENVIO_NACIONAL]", "")
+    elif "[ATENCION_ESPECIALIZADA]" in texto_ia:
+        evento_detectado = "ATENCION_ESPECIALIZADA"
+        texto_ia = texto_ia.replace("[ATENCION_ESPECIALIZADA]", "")
+    elif "[NO_INTERESADO]" in texto_ia:
+        evento_detectado = "NO_INTERESADO"
+        texto_ia = texto_ia.replace("[NO_INTERESADO]", "")
 
     fotos = re.findall(r"\[FOTO:\s*(https?://[^\]]+)\]", texto_ia)
     videos = re.findall(r"\[VIDEO:\s*(https?://[^\]]+)\]", texto_ia)
@@ -371,13 +512,20 @@ def procesar_respuesta_bot(sender_id, mensaje_usuario):
             "attachment": {"type": "video", "payload": {"url": url_video.strip(), "is_reusable": True}}
         })
 
+    if evento_detectado == "NO_INTERESADO":
+        sesion["no_interesado"] = True
+        cancelar_remarketing(sender_id)
+        reiniciar_temporizador_embudo(sender_id)
+        return
+
     if evento_detectado:
+        cancelar_remarketing(sender_id)
         if sender_id in temporizadores_embudo:
             temporizadores_embudo[sender_id].cancel()
 
-        # Solo pausamos si requiere cotización manual externa; si es venta confirmada, sigue atendiendo dudas
-        if evento_detectado in ("MAYORISTA", "ENVIO_NACIONAL"):
+        if evento_detectado in ("MAYORISTA", "ENVIO_NACIONAL", "ATENCION_ESPECIALIZADA"):
             chats_pausados.add(sender_id)
+            sesion["derivado"] = True
 
         clasificar_y_guardar_embudo(sender_id, evento_forzado=evento_detectado)
 
@@ -416,8 +564,15 @@ def procesar_respuesta_bot(sender_id, mensaje_usuario):
                 hora_colombia(), "ENVIO NACIONAL", sender_id, datos.get("nombre"),
                 datos.get("telefono"), datos.get("ciudad_direccion"), detalle_texto
             ])
+        elif evento_detectado == "ATENCION_ESPECIALIZADA":
+            enviar_alertas("ATENCIÓN ESPECIALIZADA (COJINES / MODELO ESPECÍFICO)", resumen_msg)
+            registrar_en_sheets("Interacciones_y_Mayoristas", [
+                hora_colombia(), "ATENCION ESPECIALIZADA", sender_id, datos.get("nombre"),
+                datos.get("telefono"), datos.get("ciudad_direccion"), detalle_texto
+            ])
     elif not sesion.get("venta_registrada"):
         reiniciar_temporizador_embudo(sender_id)
+        programar_remarketing(sender_id)
 
 # --- RUTAS DEL SERVIDOR WEBHOOK ---
 
@@ -447,6 +602,7 @@ def recibir_mensajes():
                         chats_pausados.remove(recipient_id)
                         if recipient_id in sesiones_chat:
                             sesiones_chat[recipient_id]["clasificado"] = False
+                            sesiones_chat[recipient_id]["derivado"] = False
                     continue
 
                 sender_id = event.get("sender", {}).get("id")
@@ -454,7 +610,16 @@ def recibir_mensajes():
                     continue
 
                 if event.get("postback"):
+                    payload_btn = event["postback"].get("payload", "")
                     titulo_boton = event["postback"].get("title", "")
+                    if payload_btn == "VENTA_ESPECIALIZADA_BTN" or "especializada" in titulo_boton.lower():
+                        threading.Thread(
+                            target=activar_atencion_especializada,
+                            args=(sender_id, "Botón Venta Especializada"),
+                            daemon=True
+                        ).start()
+                        continue
+
                     ref_producto = event["postback"].get("referral", {}).get("ref", "")
                     mensaje_armado = f"{titulo_boton} (Referencia de publicación: {ref_producto})" if ref_producto else titulo_boton
                     if mensaje_armado:
@@ -467,6 +632,14 @@ def recibir_mensajes():
 
                 if event.get("message") and not event["message"].get("is_echo"):
                     texto = event["message"].get("text", "")
+                    if texto.strip().lower() in ("venta especializada", "atencion especializada", "atención especializada"):
+                        threading.Thread(
+                            target=activar_atencion_especializada,
+                            args=(sender_id, f"Solicitud directa: {texto.strip()}"),
+                            daemon=True
+                        ).start()
+                        continue
+
                     adjuntos = event["message"].get("attachments", [])
                     contexto_producto = ""
 
@@ -491,6 +664,8 @@ def recibir_mensajes():
 
         return "EVENT_RECEIVED", 200
     return "Not Found", 404
+
+configurar_menu_messenger()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
