@@ -352,11 +352,11 @@ def procesar_respuesta_bot(sender_id, mensaje_usuario):
     texto_limpio = re.sub(r"\[FOTO:\s*https?://[^\]]+\]", "", texto_ia)
     texto_limpio = re.sub(r"\[VIDEO:\s*https?://[^\]]+\]", "", texto_limpio).strip()
 
-    if texto_limpio:
+if texto_limpio:
         enviar_a_messenger(sender_id, {"text": texto_limpio})
         actualizar_metrica_diaria(sender_id)
 
-  for url_foto in fotos:
+    for url_foto in fotos:
         enviar_a_messenger(sender_id, {
             "attachment": {"type": "image", "payload": {"url": url_foto.strip(), "is_reusable": True}}
         })
