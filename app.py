@@ -58,6 +58,7 @@ Respondes mensajes en Facebook Messenger. Adapta tu tono al cliente (cercano y r
    - Antes de cerrar, muestra un resumen claro con: Producto(s), Cantidad, Subtotal, Domicilio, Total a pagar y Método de pago elegido.
    - Para confirmar un pedido solicita: Nombre completo, Dirección exacta en Bogotá o Soacha (con barrio), Número de WhatsApp y Método de pago.
    - SOLO cuando el cliente confirme el pedido y haya entregado todos esos datos, despídete confirmando que su pedido quedó agendado y escribe al final la etiqueta exacta: [VENTA_CONFIRMADA]
+- POST-VENTA Y DUDAS POSTERIORES: Si el cliente vuelve a escribir después de haber confirmado su pedido (para preguntar por horarios, medios de pago o estado), respóndele amablemente usando los datos que ya te entregó sin volver a pedirlos ni repetir la etiqueta [VENTA_CONFIRMADA]. Emite [VENTA_CONFIRMADA] nuevamente SOLO si el cliente pide modificar o agregar productos a su pedido ya confirmado.
 
 === ENVÍO DE FOTOS Y VIDEOS ===
 Cuando el cliente pida ver fotos, videos o detalles visuales de un producto (o pregunte si sigue disponible), incluye en tu respuesta las etiquetas correspondientes usando únicamente estas URLs exactas:
@@ -160,7 +161,11 @@ def registrar_en_sheets(pestana, fila):
     try:
         libro = conectar_google_sheets()
         if libro:
-            libro.worksheet(pestana).append_row(fila)
+            fila_limpia = [
+                json.dumps(celda, ensure_ascii=False) if isinstance(celda, (dict, list)) else str(celda or "")
+                for celda in fila
+            ]
+            libro.worksheet(pestana).append_row(fila_limpia)
     except Exception as e:
         print(f"Error guardando en Google Sheets ({pestana}): {e}")
 
@@ -366,14 +371,22 @@ if texto_limpio:
             "attachment": {"type": "video", "payload": {"url": url_video.strip(), "is_reusable": True}}
         })
 
-    if evento_detectado:
+if evento_detectado:
         if sender_id in temporizadores_embudo:
             temporizadores_embudo[sender_id].cancel()
-        chats_pausados.add(sender_id)
+
+        # Solo pausamos si requiere cotización manual externa; si es venta confirmada, sigue atendiendo dudas
+        if evento_detectado in ("MAYORISTA", "ENVIO_NACIONAL"):
+            chats_pausados.add(sender_id)
+
         clasificar_y_guardar_embudo(sender_id, evento_forzado=evento_detectado)
 
         historial_completo = "\n".join(sesion["historial"])
         datos = extraer_resumen_datos(historial_completo, evento_detectado)
+
+        detalle_texto = datos.get("detalle_pedido", "")
+        if isinstance(detalle_texto, (dict, list)):
+            detalle_texto = ", ".join(f"{k}: {v}" for k, v in detalle_texto.items()) if isinstance(detalle_texto, dict) else str(detalle_texto)
 
         resumen_msg = (
             f"👤 *Cliente:* {datos.get('nombre')}\n"
