@@ -44,21 +44,21 @@ Respondes mensajes en Facebook Messenger. Adapta tu tono al cliente (cercano y r
 === CANDADOS ESTRICTOS DE SEGURIDAD ===
 1. CATÁLOGO CERRADO: Solo puedes vender los productos, medidas, colores y precios exactos listados abajo. JAMÁS inventes productos, medidas, descuentos ni promociones que no estén escritos aquí.
 2. COBERTURA GEOGRÁFICA (BOGOTÁ Y SOACHA): Solo gestionas entregas directas en Bogotá D.C. y Soacha. Si el cliente pide envío a cualquier otra ciudad o municipio fuera de Bogotá/Soacha:
-   - NO inventes tarifas ni tiempos de envío nacional.
-   - Pídele amablemente su ciudad/municipio y su número de WhatsApp para que el encargado de ventas nacionales le cotice el despacho.
-   - SOLO cuando el cliente te haya entregado su ciudad y su número de WhatsApp, despídete indicando que un asesor nacional lo contactará de inmediato y escribe al final la etiqueta exacta: [ENVIO_NACIONAL]
+  - NO inventes tarifas ni tiempos de envío nacional.
+  - Pídele amablemente su ciudad/municipio y su número de WhatsApp para que el encargado de ventas nacionales le cotice el despacho.
+  - SOLO cuando el cliente te haya entregado su ciudad y su número de WhatsApp, despídete indicando que un asesor nacional lo contactará de inmediato y escribe al final la etiqueta exacta: [ENVIO_NACIONAL]
 3. REGLA DE MAYORISTAS (12 O MÁS UNIDADES): Se considera venta al por mayor a partir de 12 unidades de cualquier producto (incluidas las Pampas Eternizadas). Si piden precio al por mayor o 12 o más unidades:
-   - NO des precios mayoristas ni descuentos especiales.
-   - Pídele amablemente su nombre completo, producto/cantidad aproximada y número de WhatsApp.
-   - SOLO cuando el cliente te entregue esos datos, indícale que un asesor comercial lo contactará y escribe al final la etiqueta exacta: [MAYORISTA]
+  - NO des precios mayoristas ni descuentos especiales.
+  - Pídele amablemente su nombre completo, producto/cantidad aproximada y número de WhatsApp.
+  - SOLO cuando el cliente te entregue esos datos, indícale que un asesor comercial lo contactará y escribe al final la etiqueta exacta: [MAYORISTA]
 4. LIQUIDACIÓN Y CIERRE DE PEDIDOS (BOGOTÁ / SOACHA):
-   - Calcula siempre el subtotal exacto según cantidad y precio unitario.
-   - Costo de domicilio: Bogotá D.C. = $10.000 COP | Soacha = $15.000 COP.
-   - ENVÍO GRATIS: Si el subtotal en productos es MAYOR a $250.000 COP, el domicilio es $0 (Gratis).
-   - Antes de cerrar, muestra un resumen claro con: Producto(s), Cantidad, Subtotal, Domicilio, Total a pagar y Método de pago elegido.
-   - Para confirmar un pedido solicita: Nombre completo, Dirección exacta en Bogotá o Soacha (con barrio), Número de WhatsApp y Método de pago.
-   - SOLO cuando el cliente confirme el pedido y haya entregado todos esos datos, despídete confirmando que su pedido quedó agendado y escribe al final la etiqueta exacta: [VENTA_CONFIRMADA]
-- POST-VENTA Y DUDAS POSTERIORES: Si el cliente vuelve a escribir después de haber confirmado su pedido (para preguntar por horarios, medios de pago o estado), respóndele amablemente usando los datos que ya te entregó sin volver a pedirlos ni repetir la etiqueta [VENTA_CONFIRMADA]. Emite [VENTA_CONFIRMADA] nuevamente SOLO si el cliente pide modificar o agregar productos a su pedido ya confirmado.
+  - Calcula siempre el subtotal exacto según cantidad y precio unitario.
+  - Costo de domicilio: Bogotá D.C. = $10.000 COP | Soacha = $15.000 COP.
+  - ENVÍO GRATIS: Si el subtotal en productos es MAYOR a $250.000 COP, el domicilio es $0 (Gratis).
+  - Antes de cerrar, muestra un resumen claro con: Producto(s), Cantidad, Subtotal, Domicilio, Total a pagar y Método de pago elegido.
+  - Para confirmar un pedido solicita: Nombre completo, Dirección exacta en Bogotá o Soacha (con barrio), Número de WhatsApp y Método de pago.
+  - SOLO cuando el cliente confirme el pedido y haya entregado todos esos datos, despídete confirmando que su pedido quedó agendado y escribe al final la etiqueta exacta: [VENTA_CONFIRMADA]
+  - POST-VENTA Y DUDAS POSTERIORES: Si el cliente vuelve a escribir después de haber confirmado su pedido (para preguntar por horarios, medios de pago o estado), respóndele amablemente usando los datos que ya te entregó sin volver a pedirlos ni repetir la etiqueta [VENTA_CONFIRMADA]. Emite [VENTA_CONFIRMADA] nuevamente SOLO si el cliente pide modificar o agregar productos a su pedido ya confirmado.
 
 === ENVÍO DE FOTOS Y VIDEOS ===
 Cuando el cliente pida ver fotos, videos o detalles visuales de un producto (o pregunte si sigue disponible), incluye en tu respuesta las etiquetas correspondientes usando únicamente estas URLs exactas:
@@ -213,24 +213,24 @@ def clasificar_y_guardar_embudo(sender_id, evento_forzado=None):
     Cantidad de mensajes enviados por el cliente: {total_mensajes_cliente}
 
     Elige UNA sola categoría exacta para el campo "categoria_embudo":
-    - "1_VENTA_CERRADA" (si el evento fue VENTA_CONFIRMADA)
-    - "2_SOLO_PRECIO_SIN_RESPUESTA" (si el cliente envió solo 1 mensaje inicial como '¿sigue disponible?' o 'precio' y nunca más respondió)
-    - "3_COTIZO_PERO_NO_CONCRETO" (si el cliente envió 2 o más mensajes conversando o cotizando envío/fotos, pero abandonó antes de cerrar compra)
-    - "4_DERIVADO_NACIONAL" (si el evento fue ENVIO_NACIONAL o pidió envío fuera de Bogotá/Soacha)
-    - "5_DERIVADO_MAYORISTA" (si el evento fue MAYORISTA o pidió 12+ unidades)
+- "1_VENTA_CERRADA" (si el evento fue VENTA_CONFIRMADA)
+- "2_SOLO_PRECIO_SIN_RESPUESTA" (si el cliente envió solo 1 mensaje inicial como '¿sigue disponible?' o 'precio' y nunca más respondió)
+- "3_COTIZO_PERO_NO_CONCRETO" (si el cliente envió 2 o más mensajes conversando o cotizando envío/fotos, pero abandonó antes de cerrar compra)
+- "4_DERIVADO_NACIONAL" (si el evento fue ENVIO_NACIONAL o pidió envío fuera de Bogotá/Soacha)
+- "5_DERIVADO_MAYORISTA" (si el evento fue MAYORISTA o pidió 12+ unidades)
 
     Campos JSON requeridos:
-    - "producto_interes": (Ej: Pampas Eternizadas, Jarrón 60cm, Cojines, etc.)
-    - "categoria_embudo": (una de las 5 opciones exactas)
-    - "motivo_detectado": (frase corta de máximo 8 palabras explicando qué pasó, ej: "Preguntó precio y dejó en visto" o "Se detuvo tras conocer valor de domicilio")
-    - "estado_final": ("Cerrado" si hubo venta/derivación, o "Abandonado" si dejó de escribir)
+- "producto_interes": (Ej: Pampas Eternizadas, Jarrón 60cm, Cojines, etc.)
+- "categoria_embudo": (una de las 5 opciones exactas)
+- "motivo_detectado": (frase corta de máximo 8 palabras explicando qué pasó, ej: "Preguntó precio y dejó en visto" o "Se detuvo tras conocer valor de domicilio")
+- "estado_final": ("Cerrado" si hubo venta/derivación, o "Abandonado" si dejó de escribir)
 
     Conversación:
     {historial_texto}
     """
     try:
         resp = client.models.generate_content(
-          model="gemini-3.1-flash-lite",
+            model="gemini-3.1-flash-lite",
             contents=prompt,
             config=types.GenerateContentConfig(temperature=0.0)
         )
@@ -261,17 +261,17 @@ def extraer_resumen_datos(historial_texto, tipo_evento):
     Analiza la siguiente conversación y extrae los datos del cliente en formato JSON puro (sin bloques markdown).
     Tipo de evento: {tipo_evento}
     Campos requeridos:
-    - nombre (si no lo dio, pon "No especificado")
-    - telefono (si no lo dio, pon "No especificado")
-    - ciudad_direccion (ciudad, barrio o dirección completa)
-    - detalle_pedido (productos, cantidades, total y método de pago si aplica)
+- nombre (si no lo dio, pon "No especificado")
+- telefono (si no lo dio, pon "No especificado")
+- ciudad_direccion (ciudad, barrio o dirección completa)
+- detalle_pedido (productos, cantidades, total y método de pago si aplica)
 
     Conversación:
     {historial_texto}
     """
     try:
         resp = client.models.generate_content(
-           model="gemini-3.1-flash-lite",
+            model="gemini-3.1-flash-lite",
             contents=prompt,
             config=types.GenerateContentConfig(temperature=0.0)
         )
@@ -357,7 +357,7 @@ def procesar_respuesta_bot(sender_id, mensaje_usuario):
     texto_limpio = re.sub(r"\[FOTO:\s*https?://[^\]]+\]", "", texto_ia)
     texto_limpio = re.sub(r"\[VIDEO:\s*https?://[^\]]+\]", "", texto_limpio).strip()
 
-if texto_limpio:
+    if texto_limpio:
         enviar_a_messenger(sender_id, {"text": texto_limpio})
         actualizar_metrica_diaria(sender_id)
 
@@ -371,7 +371,7 @@ if texto_limpio:
             "attachment": {"type": "video", "payload": {"url": url_video.strip(), "is_reusable": True}}
         })
 
-if evento_detectado:
+    if evento_detectado:
         if sender_id in temporizadores_embudo:
             temporizadores_embudo[sender_id].cancel()
 
@@ -392,29 +392,31 @@ if evento_detectado:
             f"👤 *Cliente:* {datos.get('nombre')}\n"
             f"📱 *WhatsApp:* {datos.get('telefono')}\n"
             f"📍 *Ubicación:* {datos.get('ciudad_direccion')}\n"
-            f"📦 *Detalle:* {datos.get('detalle_pedido')}\n"
+            f"📦 *Detalle:* {detalle_texto}\n"
             f"🆔 *ID Messenger:* {sender_id}"
         )
 
         if evento_detectado == "VENTA_CONFIRMADA":
-            enviar_alertas("NUEVO PEDIDO CONFIRMADO (BOGOTÁ/SOACHA)", resumen_msg)
+            titulo_alerta = "MODIFICACIÓN DE PEDIDO CONFIRMADO" if sesion.get("venta_registrada") else "NUEVO PEDIDO CONFIRMADO (BOGOTÁ/SOACHA)"
+            sesion["venta_registrada"] = True
+            enviar_alertas(titulo_alerta, resumen_msg)
             registrar_en_sheets("Pedidos_Confirmados", [
                 hora_colombia(), sender_id, datos.get("nombre"), datos.get("telefono"),
-                datos.get("ciudad_direccion"), datos.get("detalle_pedido"), "Por Despachar"
+                datos.get("ciudad_direccion"), detalle_texto, "Por Despachar"
             ])
         elif evento_detectado == "MAYORISTA":
             enviar_alertas("SOLICITUD CLIENTE MAYORISTA (+12 UNDS)", resumen_msg)
             registrar_en_sheets("Interacciones_y_Mayoristas", [
                 hora_colombia(), "MAYORISTA", sender_id, datos.get("nombre"),
-                datos.get("telefono"), datos.get("ciudad_direccion"), datos.get("detalle_pedido")
+                datos.get("telefono"), datos.get("ciudad_direccion"), detalle_texto
             ])
         elif evento_detectado == "ENVIO_NACIONAL":
             enviar_alertas("CLIENTE ENVÍO NACIONAL (FUERA DE BOGOTÁ)", resumen_msg)
             registrar_en_sheets("Interacciones_y_Mayoristas", [
                 hora_colombia(), "ENVIO NACIONAL", sender_id, datos.get("nombre"),
-                datos.get("telefono"), datos.get("ciudad_direccion"), datos.get("detalle_pedido")
+                datos.get("telefono"), datos.get("ciudad_direccion"), detalle_texto
             ])
-    else:
+    elif not sesion.get("venta_registrada"):
         reiniciar_temporizador_embudo(sender_id)
 
 # --- RUTAS DEL SERVIDOR WEBHOOK ---
