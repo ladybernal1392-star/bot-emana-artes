@@ -90,7 +90,7 @@ https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Pampas%20Video.
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%201.jpg
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%202.jpg
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medidas.jpeg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medidas_detallado.webp
+https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Medidas%20Jarrones.jpeg
 
 3. Jarrón en Mimbre 50 cm
 - Precio: $48.000 COP por unidad.
@@ -99,7 +99,7 @@ https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medi
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%201.jpg
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%202.jpg
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medidas.jpeg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medidas_detallado.webp
+https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Medidas%20Jarrones.jpeg
 
 4. Jarrón en Mimbre 60 cm
 - Precio: $55.000 COP por unidad.
@@ -108,7 +108,7 @@ https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medi
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%201.jpg
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%202.jpg
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medidas.jpeg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medidas_detallado.webp
+https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Medidas%20Jarrones.jpeg
 
 5. Jarrón en Mimbre 80 cm
 - Precio: $75.000 COP por unidad.
@@ -117,7 +117,7 @@ https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medi
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%201.jpg
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%202.jpg
 https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medidas.jpeg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medidas_detallado.webp
+https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Medidas%20Jarrones.jpeg
 
 6. Lámpara Boho Mimbre 40 cm
 - Precio: $45.000 COP por unidad.
