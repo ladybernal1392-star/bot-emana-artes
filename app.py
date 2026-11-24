@@ -76,68 +76,68 @@ Cuando el cliente pida ver fotos, videos o detalles visuales de un producto (o p
 - Características: Pampa eternizada 100%, textura suave y plumosa de gran volumen, larga duración, no requiere agua ni mantenimiento. Altura aprox: 1,70 metros. (Sugiere llevar mínimo 5 tallos para un ramo frondoso).
 - Color: Natural (tonos beige y crema).
 - Fotos:
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Pampas%20Hall.jpg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Pampas%20Sala%202.jp
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Pampas%20Sala.jpg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Pampas%20en%20Cantidad.jpeg
-- Video:
-https://www.instagram.com/reel/DeiSH9SNaiy/?jplx=M3dsemJvbG9vZzFh
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Pampas%20Hall.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Pampas%20Sala%202.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Pampas%20Sala.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Pampas%20en%20Cantidad.jpeg
+- Video (si piden video, compárteles directamente este enlace de Instagram en el texto, NO uses etiqueta [VIDEO:]):
+  https://www.instagram.com/reel/DeiSH9SNaiy/?jplx=M3dsemJvbG9vZzFh
 
 2. Jarrón en Mimbre 40 cm
 - Precio: $40.000 COP por unidad.
 - Características: Tejido 100% a mano en mimbre natural, altura 40 cm, color natural del mimbre.
 - Fotos:
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%201.jpg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%202.jpg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medidas.jpeg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Medidas%20Jarrones.jpeg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Jarron%20Mimbre%201.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Jarron%20Mimbre%202.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Jarrones%20Medidas.jpeg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Medidas%20Jarrones.jpeg
 
 3. Jarrón en Mimbre 50 cm
 - Precio: $48.000 COP por unidad.
 - Características: Tejido 100% a mano en mimbre natural, altura 50 cm, color natural del mimbre.
 - Fotos:
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%201.jpg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%202.jpg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medidas.jpeg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Medidas%20Jarrones.jpeg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Jarron%20Mimbre%201.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Jarron%20Mimbre%202.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Jarrones%20Medidas.jpeg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Medidas%20Jarrones.jpeg
 
 4. Jarrón en Mimbre 60 cm
 - Precio: $55.000 COP por unidad.
 - Características: Tejido 100% a mano en mimbre natural, altura 60 cm, color natural del mimbre.
 - Fotos:
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%201.jpg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%202.jpg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medidas.jpeg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Medidas%20Jarrones.jpeg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Jarron%20Mimbre%201.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Jarron%20Mimbre%202.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Jarrones%20Medidas.jpeg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Medidas%20Jarrones.jpeg
 
 5. Jarrón en Mimbre 80 cm
 - Precio: $75.000 COP por unidad.
 - Características: Tejido 100% a mano en mimbre natural, altura 80 cm, color natural del mimbre.
 - Fotos:
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%201.jpg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarron%20Mimbre%202.jpg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Jarrones%20Medidas.jpeg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Medidas%20Jarrones.jpeg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Jarron%20Mimbre%201.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Jarron%20Mimbre%202.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Jarrones%20Medidas.jpeg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Medidas%20Jarrones.jpeg
 
 6. Lámpara Boho Mimbre 40 cm
 - Precio: $45.000 COP por unidad.
 - Características: Tejida 100% a mano en mimbre natural, altura 40 cm, color natural. IMPORTANTE: NO incluye plafón del techo ni bombillo.
 - Fotos:
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/lampara%20en%20mimbre%20Sala.jpg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/lampara%20en%20mimbre%20comedor.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/lampara%20en%20mimbre%20Sala.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/lampara%20en%20mimbre%20comedor.jpg
 
 7. Cojines Decorativos (Variedad)
 - Precios escalonados (hasta 11 unidades):
-  * De 1 a 2 unidades: $27.000 COP cada uno.
-  * De 3 a 11 unidades: $25.000 COP cada uno.
+  - De 1 a 2 unidades: $27.000 COP cada uno.
+  - De 3 a 11 unidades: $25.000 COP cada uno.
 - Características: Funda extraíble para fácil lavado, medidas 48 cm x 48 cm.
 - Estilos/texturas: Tela suave con acabado marmolado y vetas doradas, tela acanalada ultra suave, peluche peludo de pelo largo y diseños estampados de temporada.
 - Fotos:
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Cojines%20Variedad-1.jpeg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Cojines%20Variedad-2.jpeg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Cojines%20Variedad-3.jpg
-https://github.com/ladybernal1392-star/bot-emana-artes/blob/main/Cojines%20Variedad.jpeg
-
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Cojines%20Variedad-1.jpeg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Cojines%20Variedad-2.jpeg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Cojines%20Variedad-3.jpg
+  https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Cojines%20Variedad.jpeg
+  
 === PREGUNTAS FRECUENTES ===
 - Tienda física / Ubicación: Somos tienda virtual con bodega en Bogotá; realizamos únicamente despachos a domicilio (no tenemos punto físico).
 - Cambios o devoluciones: Se aceptan dentro de los 5 días calendario siguientes a la entrega únicamente por defectos de fábrica, sin uso y en su empaque original.
