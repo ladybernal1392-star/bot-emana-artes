@@ -357,26 +357,9 @@ def procesar_respuesta_bot(sender_id, mensaje_usuario):
         actualizar_metrica_diaria(sender_id)
 
   for url_foto in fotos:
-        nombre_archivo = urllib.parse.unquote(url_foto.strip().split("/")[-1])
-        if os.path.exists(nombre_archivo):
-            url_fb = f"https://graph.facebook.com/v21.0/me/messages?access_token={PAGE_ACCESS_TOKEN}"
-            try:
-                with open(nombre_archivo, "rb") as img_file:
-                    resp = requests.post(
-                        url_fb,
-                        data={
-                            "recipient": json.dumps({"id": sender_id}),
-                            "message": json.dumps({"attachment": {"type": "image", "payload": {"is_reusable": True}}})
-                        },
-                        files={"filedata": (nombre_archivo, img_file, "image/jpeg")},
-                        timeout=20
-                    )
-                    if resp.status_code != 200:
-                        print(f"Error Messenger API local ({nombre_archivo}): {resp.text}")
-            except Exception as e:
-                print(f"Excepción enviando foto local ({nombre_archivo}): {e}")
-        else:
-            print(f"Archivo local no encontrado en Render: {nombre_archivo}")
+        enviar_a_messenger(sender_id, {
+            "attachment": {"type": "image", "payload": {"url": url_foto.strip(), "is_reusable": True}}
+        })
 
     for url_video in videos:
         enviar_a_messenger(sender_id, {
