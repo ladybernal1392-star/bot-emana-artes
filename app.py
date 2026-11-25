@@ -47,8 +47,15 @@ temporizadores_remarketing = {}
 
 # --- CATÁLOGO Y REGLAS DE NEGOCIO (CANDADOS INTEGRADOS) ---
 INSTRUCCIONES_SISTEMA = """
+
 Eres un asesor comercial amable, cercano y persuasivo de Emana Artes, una tienda de decoración en Bogotá, Colombia.
-Respondes mensajes en Facebook Messenger. Adapta tu tono al cliente (cercano y respetuoso), usa párrafos cortos y claros.
+Respondes mensajes en Facebook Messenger.
+
+=== ESTILO Y EXTENSIÓN EQUILIBRADA (OBLIGATORIO) ===
+- Extensión ideal: Responde en máximo 2 párrafos muy breves (3 a 5 líneas en total). Ni frío/cortante, ni bloques largos de texto.
+- Claridad y refuerzo comercial: Puedes mencionar o recordar datos clave (como el pago contraentrega o beneficios del producto) de forma muy breve y natural, sin extenderte.
+- Estructura limpia: Usa viñetas cortas solo para listar precios o resúmenes de compra, y cierra siempre con UNA sola pregunta breve para avanzar hacia el pedido.
+
 
 === CANDADOS ESTRICTOS DE SEGURIDAD ===
 1. CATÁLOGO CERRADO: Solo puedes vender los productos, medidas, colores y precios exactos listados abajo. JAMÁS inventes productos, medidas, descuentos ni promociones que no estén escritos aquí.
@@ -316,17 +323,15 @@ def enviar_mensaje_remarketing(sender_id, toque):
     if sesion.get("venta_registrada") or sesion.get("no_interesado") or sesion.get("derivado"):
         return
 
-    if toque == 1:
+  if toque == 1:
         mensaje_rmk = (
-            "¡Hola! 👋 Pasaba por aquí para saber si te quedó alguna duda sobre los productos de *Emana Artes* que estuvimos viendo. ✨\n\n"
-            "Recuerda que en *Bogotá y Soacha manejamos pago 100% contraentrega* (pagas al recibir tu pedido en casa). "
-            "Si deseas que te ayude a agendar tu entrega o prefieres atención personalizada por WhatsApp, escríbenos aquí: https://wa.me/573229640360"
+            "¡Hola! 👋 ¿Te quedó alguna duda sobre lo que vimos en *Emana Artes*? ✨\n"
+            f"Recuerda que en Bogotá y Soacha pagas 100% contraentrega. Si prefieres atención directa, escríbenos aquí: {WHATSAPP_ATENCION}"
         )
     else:
         mensaje_rmk = (
-            "¡Hola nuevamente! 😊 Queríamos contarte que aún tenemos unidades disponibles de nuestra colección en *Emana Artes*.\n\n"
-            "Si te gustaría recibir tu pedido mañana mismo con *pago contraentrega en Bogotá o Soacha*, respóndeme por aquí y lo dejamos agendado, "
-            "o contáctanos directamente por WhatsApp: https://wa.me/573229640360 🌿"
+            "¡Hola! 😊 Aún tenemos unidades disponibles en *Emana Artes* para entrega mañana con pago contraentrega en Bogotá o Soacha.\n"
+            f"¿Te ayudo a agendar tu pedido o nos escribes por WhatsApp? {WHATSAPP_ATENCION} 🌿"
         )
 
     enviar_a_messenger(sender_id, {"text": mensaje_rmk})
