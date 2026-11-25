@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import time
 import threading
 import urllib.parse
 from datetime import datetime, timezone, timedelta
@@ -32,6 +33,10 @@ GOOGLE_SHEETS_CREDENTIALS = os.environ.get("GOOGLE_SHEETS_CREDENTIALS", "")
 SPREADSHEET_NAME = os.environ.get("SPREADSHEET_NAME", "Control_Ventas_Bot")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
+
+# Modelos IA (Primario y Respaldo por turno ante saturación 503/429)
+MODELO_PRIMARIO = "gemini-3.1-flash-lite"
+MODELO_RESPALDO = "gemini-2.5-flash-lite"
 
 # Memoria de sesiones, control de pausas y temporizadores de embudo/remarketing
 sesiones_chat = {}
@@ -73,10 +78,9 @@ Respondes mensajes en Facebook Messenger. Adapta tu tono al cliente (cercano y r
   - Si el cliente indica explícitamente que no está interesado, que le parece muy caro, que no lo quiere o que desiste de la compra, despídete de forma muy cordial dejando las puertas abiertas (y nuestro WhatsApp https://wa.me/573229640360 por si más adelante se anima) y escribe al final la etiqueta exacta: [NO_INTERESADO]
 
 === ENVÍO DE FOTOS Y VIDEOS ===
-Cuando el cliente pida ver fotos, videos o detalles visuales de un producto (o pregunte si sigue disponible), incluye en tu respuesta las etiquetas correspondientes usando únicamente estas URLs exactas:
+Cuando el cliente pida ver fotos o detalles visuales de un producto (o pregunte si sigue disponible), incluye en tu respuesta las etiquetas correspondientes usando únicamente estas URLs exactas:
 - Para enviar una foto usa: [FOTO: url_exacta]
-- Para enviar un video usa: [VIDEO: url_exacta]
-(Envía máximo 2 fotos por mensaje para no saturar el chat, o el video si piden ver el movimiento/tamaño real).
+(Envía máximo 2 fotos por mensaje para no saturar el chat. Si piden video, compárteles directamente el enlace de Instagram en el texto, NUNCA uses la etiqueta [VIDEO:]).
 
 === REGLAS DE ENTREGA Y PAGOS ===
 - Pago contraentrega: En Bogotá D.C. y Soacha realizamos pagos 100% contraentrega (pagas al momento de recibir el producto).
@@ -95,7 +99,7 @@ Cuando el cliente pida ver fotos, videos o detalles visuales de un producto (o p
   https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Pampas%20Sala%202.jpg
   https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Pampas%20Sala.jpg
   https://raw.githubusercontent.com/ladybernal1392-star/bot-emana-artes/main/Pampas%20en%20Cantidad.jpeg
-- Video (si piden video, compárteles directamente este enlace de Instagram en el texto, NO uses etiqueta [VIDEO:]):
+- Video (SIEMPRE que el cliente pregunte o pida Pampas Eternizadas, incluye obligatoriamente en el texto de tu respuesta este enlace de Instagram para que se previsualice en el chat, NO uses etiqueta [VIDEO:]):
   https://www.instagram.com/reel/DeiSH9SNaiy/?jplx=M3dsemJvbG9vZzFh
 
 2. Jarrón en Mimbre 40 cm
@@ -163,6 +167,35 @@ Cuando el cliente pida ver fotos, videos o detalles visuales de un producto (o p
 def hora_colombia():
     tz_bogota = timezone(timedelta(hours=-5))
     return datetime.now(tz_bogota).strftime("%Y-%m-%d %H:%M:%S")
+
+def llamar_gemini_con_respaldo(contents, system_instruction=None, temperature=0.1):
+    """Intenta siempre primero con MODELO_PRIMARIO y solo si hay 503/429 usa MODELO_RESPALDO en ese turno."""
+    config = types.GenerateContentConfig(temperature=temperature)
+    if system_instruction:
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            temperature=temperature
+        )
+
+    try:
+        resp = client.models.generate_content(
+            model=MODELO_PRIMARIO,
+            contents=contents,
+            config=config
+        )
+        return resp.text
+    except Exception as e:
+        err_str = str(e)
+        if "503" in err_str or "429" in err_str or "UNAVAILABLE" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+            print(f"Saturación en {MODELO_PRIMARIO} ({err_str[:80]}). Usando respaldo {MODELO_RESPALDO} para este turno...")
+            time.sleep(1.2)
+            resp = client.models.generate_content(
+                model=MODELO_RESPALDO,
+                contents=contents,
+                config=config
+            )
+            return resp.text
+        raise
 
 def conectar_google_sheets():
     if not GOOGLE_SHEETS_CREDENTIALS:
@@ -245,12 +278,8 @@ def clasificar_y_guardar_embudo(sender_id, evento_forzado=None):
     {historial_texto}
     """
     try:
-        resp = client.models.generate_content(
-            model="gemini-3.1-flash-lite",
-            contents=prompt,
-            config=types.GenerateContentConfig(temperature=0.0)
-        )
-        datos = json.loads(resp.text.replace("```json", "").replace("```", "").strip())
+        texto_resp = llamar_gemini_con_respaldo(contents=prompt, temperature=0.0)
+        datos = json.loads(texto_resp.replace("```json", "").replace("```", "").strip())
         registrar_en_sheets("Embudo_y_Estadisticas", [
             hora_colombia(),
             sender_id,
@@ -313,7 +342,6 @@ def programar_remarketing(sender_id):
     if sender_id not in temporizadores_remarketing:
         temporizadores_remarketing[sender_id] = {}
 
-    # Reiniciar Toque 1: 1 hora (3600 segundos) después del último mensaje sin cierre
     if "toque_1" in temporizadores_remarketing[sender_id]:
         temporizadores_remarketing[sender_id]["toque_1"].cancel()
     t1 = threading.Timer(3600.0, enviar_mensaje_remarketing, args=[sender_id, 1])
@@ -321,7 +349,6 @@ def programar_remarketing(sender_id):
     t1.start()
     temporizadores_remarketing[sender_id]["toque_1"] = t1
 
-    # Programar Toque 2 una sola vez desde el inicio de la conversación (84600 seg = 23.5h para cumplir ventana 24h de Meta)
     if "toque_2" not in temporizadores_remarketing[sender_id]:
         t2 = threading.Timer(84600.0, enviar_mensaje_remarketing, args=[sender_id, 2])
         t2.daemon = True
@@ -342,12 +369,8 @@ def extraer_resumen_datos(historial_texto, tipo_evento):
     {historial_texto}
     """
     try:
-        resp = client.models.generate_content(
-            model="gemini-3.1-flash-lite",
-            contents=prompt,
-            config=types.GenerateContentConfig(temperature=0.0)
-        )
-        return json.loads(resp.text.replace("```json", "").replace("```", "").strip())
+        texto_resp = llamar_gemini_con_respaldo(contents=prompt, temperature=0.0)
+        return json.loads(texto_resp.replace("```json", "").replace("```", "").strip())
     except Exception:
         return {
             "nombre": "Revisar chat",
@@ -449,13 +472,6 @@ def activar_atencion_especializada(sender_id, motivo="Botón Venta Especializada
 def procesar_respuesta_bot(sender_id, mensaje_usuario):
     if sender_id not in sesiones_chat:
         sesiones_chat[sender_id] = {
-            "chat": client.chats.create(
-                model="gemini-3.1-flash-lite",
-                config=types.GenerateContentConfig(
-                    system_instruction=INSTRUCCIONES_SISTEMA,
-                    temperature=0.1,
-                )
-            ),
             "historial": [],
             "clasificado": False,
             "venta_registrada": False,
@@ -466,9 +482,19 @@ def procesar_respuesta_bot(sender_id, mensaje_usuario):
     sesion = sesiones_chat[sender_id]
     sesion["historial"].append(f"Cliente: {mensaje_usuario}")
 
+    historial_formateado = "\n".join(sesion["historial"])
+    prompt_conversacion = (
+        "Historial de la conversación hasta ahora:\n"
+        f"{historial_formateado}\n\n"
+        "Responde únicamente al último mensaje del Cliente manteniendo toda la memoria previa de la conversación:"
+    )
+
     try:
-        respuesta = sesion["chat"].send_message(mensaje_usuario)
-        texto_ia = respuesta.text
+        texto_ia = llamar_gemini_con_respaldo(
+            contents=prompt_conversacion,
+            system_instruction=INSTRUCCIONES_SISTEMA,
+            temperature=0.1
+        )
         sesion["historial"].append(f"Bot: {texto_ia}")
     except Exception as e:
         print(f"Error Gemini: {e}")
