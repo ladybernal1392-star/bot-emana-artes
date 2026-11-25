@@ -36,14 +36,15 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 
 # Modelos IA (Primario y Respaldo por turno ante saturación 503/429)
 MODELO_PRIMARIO = "gemini-3.1-flash-lite"
-MODELO_RESPALDO = "gemini-2.5-flash-lite"
+MODELO_RESPALDO = "gemini-2.5-flash"
 
-# Memoria de sesiones, control de pausas y temporizadores de embudo/remarketing
+# Memoria de sesiones, control de pausas y temporizadores de embudo/remarketing/recuperación
 sesiones_chat = {}
 chats_pausados = set()
 clientes_contados_hoy = set()
 temporizadores_embudo = {}
 temporizadores_remarketing = {}
+temporizadores_recuperacion = {}
 
 # --- CATÁLOGO Y REGLAS DE NEGOCIO (CANDADOS INTEGRADOS) ---
 INSTRUCCIONES_SISTEMA = """
@@ -176,7 +177,7 @@ def hora_colombia():
     return datetime.now(tz_bogota).strftime("%Y-%m-%d %H:%M:%S")
 
 def llamar_gemini_con_respaldo(contents, system_instruction=None, temperature=0.1):
-    """Intenta siempre primero con MODELO_PRIMARIO y solo si hay 503/429 usa MODELO_RESPALDO en ese turno."""
+    """Intenta 1 vez en MODELO_PRIMARIO y si hay saturación/cuota intenta 1 vez en MODELO_RESPALDO."""
     config = types.GenerateContentConfig(temperature=temperature)
     if system_instruction:
         config = types.GenerateContentConfig(
@@ -193,9 +194,8 @@ def llamar_gemini_con_respaldo(contents, system_instruction=None, temperature=0.
         return resp.text
     except Exception as e:
         err_str = str(e)
-        if "503" in err_str or "429" in err_str or "UNAVAILABLE" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+        if any(cod in err_str for cod in ("503", "429", "UNAVAILABLE", "RESOURCE_EXHAUSTED")):
             print(f"Saturación en {MODELO_PRIMARIO} ({err_str[:80]}). Usando respaldo {MODELO_RESPALDO} para este turno...")
-            time.sleep(1.2)
             resp = client.models.generate_content(
                 model=MODELO_RESPALDO,
                 contents=contents,
@@ -323,7 +323,7 @@ def enviar_mensaje_remarketing(sender_id, toque):
     if sesion.get("venta_registrada") or sesion.get("no_interesado") or sesion.get("derivado"):
         return
 
-  if toque == 1:
+    if toque == 1:
         mensaje_rmk = (
             "¡Hola! 👋 ¿Te quedó alguna duda sobre lo que vimos en *Emana Artes*? ✨\n"
             f"Recuerda que en Bogotá y Soacha pagas 100% contraentrega. Si prefieres atención directa, escríbenos aquí: {WHATSAPP_ATENCION}"
@@ -359,6 +359,64 @@ def programar_remarketing(sender_id):
         t2.daemon = True
         t2.start()
         temporizadores_remarketing[sender_id]["toque_2"] = t2
+
+def cancelar_recuperacion(sender_id):
+    """Cancela cualquier recuperación pendiente cuando el cliente escribe o el chat se pausa/deriva."""
+    timer = temporizadores_recuperacion.pop(sender_id, None)
+    if timer:
+        timer.cancel()
+    if sender_id in sesiones_chat:
+        sesiones_chat[sender_id]["pendiente_recuperacion"] = False
+
+def ejecutar_recuperacion_chat(sender_id, intento=1):
+    """Retoma automáticamente la conversación cuando pasa la saturación de IA sin perder la memoria."""
+    sesion = sesiones_chat.get(sender_id)
+    if not sesion or not sesion.get("pendiente_recuperacion"):
+        return
+    if sender_id in chats_pausados or sesion.get("derivado") or sesion.get("no_interesado"):
+        cancelar_recuperacion(sender_id)
+        return
+
+    historial_formateado = "\n".join(sesion["historial"])
+    prompt_recuperacion = (
+        "Historial de la conversación hasta ahora:\n"
+        f"{historial_formateado}\n\n"
+        "INSTRUCCIÓN DE CONTINUIDAD: Hace unos minutos hubo una breve intermitencia mientras atendías el último mensaje del Cliente "
+        "y se le envió el resumen preventivo de precios. Retoma la conversación exactamente desde ese punto con naturalidad, "
+        "responde la consulta específica que quedó pendiente en el último mensaje del Cliente usando toda la memoria previa "
+        "y avanza la venta (sin volver a saludar desde cero ni repetir todo el catálogo):"
+    )
+
+    try:
+        texto_ia = llamar_gemini_con_respaldo(
+            contents=prompt_recuperacion,
+            system_instruction=INSTRUCCIONES_SISTEMA,
+            temperature=0.1
+        )
+        sesion["pendiente_recuperacion"] = False
+        temporizadores_recuperacion.pop(sender_id, None)
+        sesion["historial"].append(f"Bot: {texto_ia}")
+        procesar_salida_ia(sender_id, sesion, texto_ia)
+    except Exception as e:
+        print(f"Recuperación intento {intento} aún con saturación para {sender_id}: {e}")
+        if intento == 1:
+            t2 = threading.Timer(180.0, ejecutar_recuperacion_chat, args=[sender_id, 2])
+            t2.daemon = True
+            t2.start()
+            temporizadores_recuperacion[sender_id] = t2
+        else:
+            sesion["pendiente_recuperacion"] = False
+            temporizadores_recuperacion.pop(sender_id, None)
+
+def programar_recuperacion_chat(sender_id):
+    """Programa el primer intento de recuperación automática a los 3 minutos (180 seg)."""
+    cancelar_recuperacion(sender_id)
+    if sender_id in sesiones_chat:
+        sesiones_chat[sender_id]["pendiente_recuperacion"] = True
+    t1 = threading.Timer(180.0, ejecutar_recuperacion_chat, args=[sender_id, 1])
+    t1.daemon = True
+    t1.start()
+    temporizadores_recuperacion[sender_id] = t1
 
 def extraer_resumen_datos(historial_texto, tipo_evento):
     prompt = f"""
@@ -449,6 +507,7 @@ def configurar_menu_messenger():
 def activar_atencion_especializada(sender_id, motivo="Botón Venta Especializada"):
     """Pausa el bot, alerta a Telegram y entrega enlace de WhatsApp al cliente."""
     cancelar_remarketing(sender_id)
+    cancelar_recuperacion(sender_id)
     if sender_id in temporizadores_embudo:
         temporizadores_embudo[sender_id].cancel()
 
@@ -474,38 +533,8 @@ def activar_atencion_especializada(sender_id, motivo="Botón Venta Especializada
         "Por confirmar", "Bogotá/Soacha", motivo
     ])
 
-def procesar_respuesta_bot(sender_id, mensaje_usuario):
-    if sender_id not in sesiones_chat:
-        sesiones_chat[sender_id] = {
-            "historial": [],
-            "clasificado": False,
-            "venta_registrada": False,
-            "no_interesado": False,
-            "derivado": False
-        }
-
-    sesion = sesiones_chat[sender_id]
-    sesion["historial"].append(f"Cliente: {mensaje_usuario}")
-
-    historial_formateado = "\n".join(sesion["historial"])
-    prompt_conversacion = (
-        "Historial de la conversación hasta ahora:\n"
-        f"{historial_formateado}\n\n"
-        "Responde únicamente al último mensaje del Cliente manteniendo toda la memoria previa de la conversación:"
-    )
-
-    try:
-        texto_ia = llamar_gemini_con_respaldo(
-            contents=prompt_conversacion,
-            system_instruction=INSTRUCCIONES_SISTEMA,
-            temperature=0.1
-        )
-        sesion["historial"].append(f"Bot: {texto_ia}")
-    except Exception as e:
-        print(f"Error Gemini: {e}")
-        enviar_a_messenger(sender_id, {"text": "Hola, dame un momento por favor, ya te atiendo."})
-        return
-
+def procesar_salida_ia(sender_id, sesion, texto_ia):
+    """Procesa etiquetas, adjuntos, alertas, Sheets y temporizadores de cualquier respuesta de IA."""
     evento_detectado = None
     if "[VENTA_CONFIRMADA]" in texto_ia:
         evento_detectado = "VENTA_CONFIRMADA"
@@ -546,11 +575,13 @@ def procesar_respuesta_bot(sender_id, mensaje_usuario):
     if evento_detectado == "NO_INTERESADO":
         sesion["no_interesado"] = True
         cancelar_remarketing(sender_id)
+        cancelar_recuperacion(sender_id)
         reiniciar_temporizador_embudo(sender_id)
         return
 
     if evento_detectado:
         cancelar_remarketing(sender_id)
+        cancelar_recuperacion(sender_id)
         if sender_id in temporizadores_embudo:
             temporizadores_embudo[sender_id].cancel()
 
@@ -604,6 +635,58 @@ def procesar_respuesta_bot(sender_id, mensaje_usuario):
     elif not sesion.get("venta_registrada"):
         reiniciar_temporizador_embudo(sender_id)
         programar_remarketing(sender_id)
+
+def procesar_respuesta_bot(sender_id, mensaje_usuario):
+    cancelar_recuperacion(sender_id)
+
+    if sender_id not in sesiones_chat:
+        sesiones_chat[sender_id] = {
+            "historial": [],
+            "clasificado": False,
+            "venta_registrada": False,
+            "no_interesado": False,
+            "derivado": False,
+            "pendiente_recuperacion": False
+        }
+
+    sesion = sesiones_chat[sender_id]
+    sesion["historial"].append(f"Cliente: {mensaje_usuario}")
+
+    historial_formateado = "\n".join(sesion["historial"])
+    prompt_conversacion = (
+        "Historial de la conversación hasta ahora:\n"
+        f"{historial_formateado}\n\n"
+        "Responde únicamente al último mensaje del Cliente manteniendo toda la memoria previa de la conversación:"
+    )
+
+    try:
+        texto_ia = llamar_gemini_con_respaldo(
+            contents=prompt_conversacion,
+            system_instruction=INSTRUCCIONES_SISTEMA,
+            temperature=0.1
+        )
+        sesion["historial"].append(f"Bot: {texto_ia}")
+    except Exception as e:
+        print(f"Error Gemini (Contingencia activa): {e}")
+        mensaje_contingencia = (
+            "¡Hola! 👋 En *Emana Artes* tenemos disponibilidad inmediata con *pago 100% contraentrega* en Bogotá ($10.000) y Soacha ($15.000):\n\n"
+            "• Pampas Eternizadas: $12.900 c/u\n"
+            "• Jarrones en Mimbre: 40cm ($40.000) | 50cm ($48.000) | 60cm ($55.000) | 80cm ($75.000)\n"
+            "• Lámpara Boho Mimbre 40cm: $45.000\n"
+            "• Cojines Decorativos: $27.000 c/u (3 o más a $25.000 c/u)\n\n"
+            f"Para atención inmediata escríbenos por WhatsApp: {WHATSAPP_ATENCION} (o en unos minutos retomamos tu consulta aquí mismo)."
+        )
+        enviar_a_messenger(sender_id, {"text": mensaje_contingencia})
+        sesion["historial"].append(f"Bot (Contingencia): {mensaje_contingencia}")
+        enviar_alertas(
+            "AVISO CONTINGENCIA IA (CHAT EN RECUPERACIÓN)",
+            f"🆔 *ID Messenger:* {sender_id}\n💬 *Mensaje cliente:* {mensaje_usuario}\n🔄 Se programó recuperación automática en 3 min."
+        )
+        programar_recuperacion_chat(sender_id)
+        reiniciar_temporizador_embudo(sender_id)
+        return
+
+    procesar_salida_ia(sender_id, sesion, texto_ia)
 
 # --- RUTAS DEL SERVIDOR WEBHOOK ---
 
