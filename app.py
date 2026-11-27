@@ -774,6 +774,7 @@ def verificar_webhook():
 @app.route("/webhook", methods=["POST"])
 def recibir_mensajes():
     data = request.get_json()
+    print("WEBHOOK_RAW:", json.dumps(data))
     if data.get("object") == "page":
         for entry in data.get("entry", []):
             page_id = entry.get("id")
