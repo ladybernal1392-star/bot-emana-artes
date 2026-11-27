@@ -774,7 +774,6 @@ def verificar_webhook():
 @app.route("/webhook", methods=["POST"])
 def recibir_mensajes():
     data = request.get_json()
-    print("WEBHOOK_RAW:", json.dumps(data))
     if data.get("object") == "page":
         for entry in data.get("entry", []):
             page_id = entry.get("id")
@@ -787,7 +786,10 @@ def recibir_mensajes():
                     continue
 
                 if event.get("referral"):
-                    ref_producto = event["referral"].get("ref", "").strip()
+                    ref_data = event["referral"]
+                    if ref_data.get("type") == "OPEN_THREAD":
+                        continue
+                    ref_producto = ref_data.get("ref", "").strip()
                     if ref_producto:
                         producto_legible = ref_producto.replace("_", " ")
                         mensaje_armado = f"Hola, vengo del enlace directo por: {producto_legible} (Referencia de publicación: {ref_producto}). Muéstrame disponibilidad, precios y fotos/video."
