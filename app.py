@@ -19,6 +19,34 @@ VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "bot_bogota_2026")
 PAGE_ACCESS_TOKEN = os.environ.get("PAGE_ACCESS_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
+# Configuración Multi-Página (Emana. arte, Emana Trend y futura 3ra página sin tocar código)
+PAGE_ID_1 = os.environ.get("PAGE_ID_EMANA_ARTE", "").strip()
+PAGE_NAME_1 = os.environ.get("PAGE_NAME_EMANA_ARTE", "Emana. arte").strip()
+PAGE_TOKEN_1 = os.environ.get("PAGE_TOKEN_EMANA_ARTE", "").strip()
+
+PAGE_ID_2 = os.environ.get("PAGE_ID_EMANA_TREND", "").strip()
+PAGE_NAME_2 = os.environ.get("PAGE_NAME_EMANA_TREND", "Emana Trend").strip()
+PAGE_TOKEN_2 = os.environ.get("PAGE_TOKEN_EMANA_TREND", "").strip()
+
+PAGE_ID_3 = os.environ.get("PAGE_ID_EMANA_3", "").strip()
+PAGE_NAME_3 = os.environ.get("PAGE_NAME_EMANA_3", "Emana Artes").strip()
+PAGE_TOKEN_3 = os.environ.get("PAGE_TOKEN_EMANA_3", "").strip()
+
+PAGINAS_CONFIG = {}
+for pid, pname, ptoken in (
+    (PAGE_ID_1, PAGE_NAME_1, PAGE_TOKEN_1),
+    (PAGE_ID_2, PAGE_NAME_2, PAGE_TOKEN_2),
+    (PAGE_ID_3, PAGE_NAME_3, PAGE_TOKEN_3),
+):
+    if pid and ptoken:
+        PAGINAS_CONFIG[pid] = {"nombre": pname, "token": ptoken}
+
+def obtener_info_pagina(page_id):
+    """Devuelve nombre y token de la página origen, con respaldo a PAGE_ACCESS_TOKEN."""
+    if page_id and page_id in PAGINAS_CONFIG:
+        return PAGINAS_CONFIG[page_id]["nombre"], PAGINAS_CONFIG[page_id]["token"]
+    return "Emana. arte", PAGE_ACCESS_TOKEN
+
 # Alertas (Telegram y WhatsApp)
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
@@ -38,9 +66,8 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 MODELO_PRIMARIO = "gemini-3.1-flash-lite"
 MODELO_RESPALDO = "gemini-2.5-flash"
 
-# Memoria de sesiones, control de pausas y temporizadores de embudo/remarketing/recuperación
+# Memoria de sesiones y temporizadores de embudo/remarketing/recuperación (SIN PAUSAS NI STANDBY)
 sesiones_chat = {}
-chats_pausados = set()
 clientes_contados_hoy = set()
 temporizadores_embudo = {}
 temporizadores_remarketing = {}
@@ -49,7 +76,7 @@ temporizadores_recuperacion = {}
 # --- CATÁLOGO Y REGLAS DE NEGOCIO (CANDADOS INTEGRADOS) ---
 INSTRUCCIONES_SISTEMA = """
 
-Eres un asesor comercial amable, cercano y persuasivo de Emana Artes, una tienda de decoración en Bogotá, Colombia.
+Eres un asesor comercial amable, cercano y persuasivo de {NOMBRE_TIENDA}, una tienda de decoración en Bogotá, Colombia.
 Respondes mensajes en Facebook Messenger.
 
 === ESTILO Y EXTENSIÓN EQUILIBRADA (OBLIGATORIO) ===
@@ -63,11 +90,11 @@ Respondes mensajes en Facebook Messenger.
 2. COBERTURA GEOGRÁFICA (BOGOTÁ Y SOACHA): Solo gestionas entregas directas en Bogotá D.C. y Soacha. Si el cliente pide envío a cualquier otra ciudad o municipio fuera de Bogotá/Soacha:
   - NO inventes tarifas ni tiempos de envío nacional.
   - Pídele amablemente su ciudad/municipio y su número de WhatsApp para que el encargado de ventas nacionales le cotice el despacho, o compártele nuestro WhatsApp de atención personalizada: https://wa.me/573229640360
-  - SOLO cuando el cliente te haya entregado su ciudad y su número de WhatsApp, despídete indicando que un asesor nacional lo contactará de inmediato y escribe al final la etiqueta exacta: [ENVIO_NACIONAL]
+  - SOLO cuando el cliente te haya entregado su ciudad y su número de WhatsApp, indícale que pasará a chat especializado para cotizar su envío nacional y escribe al final la etiqueta exacta: [ENVIO_NACIONAL]
 3. REGLA DE MAYORISTAS (12 O MÁS UNIDADES): Se considera venta al por mayor a partir de 12 unidades de cualquier producto (incluidas las Pampas Eternizadas). Si piden precio al por mayor o 12 o más unidades:
   - NO des precios mayoristas ni descuentos especiales.
   - Pídele amablemente su nombre completo, producto/cantidad aproximada y número de WhatsApp, o compártele el enlace de WhatsApp: https://wa.me/573229640360
-  - SOLO cuando el cliente te entregue esos datos, indícale que un asesor comercial lo contactará y escribe al final la etiqueta exacta: [MAYORISTA]
+  - SOLO cuando el cliente te entregue esos datos, indícale que pasará a chat especializado con un asesor mayorista y escribe al final la etiqueta exacta: [MAYORISTA]
 4. LIQUIDACIÓN Y CIERRE DE PEDIDOS (BOGOTÁ / SOACHA):
   - Recuerda mencionar siempre como beneficio que en Bogotá D.C. y Soacha manejamos **pago contraentrega** (pagas al recibir tu pedido en casa).
   - Calcula siempre el subtotal exacto según cantidad y precio unitario.
@@ -79,7 +106,7 @@ Respondes mensajes en Facebook Messenger.
   - POST-VENTA Y DUDAS POSTERIORES: Si el cliente vuelve a escribir después de haber confirmado su pedido (para preguntar por horarios, medios de pago o estado), respóndele amablemente usando los datos que ya te entregó sin volver a pedirlos ni repetir la etiqueta [VENTA_CONFIRMADA]. Emite [VENTA_CONFIRMADA] nuevamente SOLO si el cliente pide modificar o agregar productos a su pedido ya confirmado.
 5. ATENCIÓN ESPECIALIZADA (COJINES POR COLOR/MODELO ESPECÍFICO O ASESORÍA PERSONALIZADA):
   - Si el cliente pide un color, textura o diseño específico de los cojines decorativos (para verificar disponibilidad puntual en bodega), o solicita atención personalizada/especializada:
-  - Infórmale con amabilidad que un asesor especializado verificará disponibilidad exacta y le enviará opciones disponibles.
+  - Infórmale con amabilidad que pasará a chat especializado para verificar disponibilidad exacta y enviarle opciones disponibles.
   - Compártele nuestro WhatsApp directo de atención personalizada: https://wa.me/573229640360 e indícale que también puede dejarnos su nombre y WhatsApp por aquí para escribirle de inmediato.
   - Escribe al final de esa respuesta la etiqueta exacta: [ATENCION_ESPECIALIZADA]
 6. DETECCIÓN DE RECHAZO O DESINTERÉS:
@@ -253,13 +280,15 @@ def actualizar_metrica_diaria(sender_id):
     except Exception as e:
         print(f"Error actualizando métrica diaria: {e}")
 
-def clasificar_y_guardar_embudo(sender_id, evento_forzado=None):
+def clasificar_y_guardar_embudo(session_key, evento_forzado=None):
     """Clasifica la conversación en una de las 5 categorías de estadística en Google Sheets."""
-    sesion = sesiones_chat.get(sender_id)
+    sesion = sesiones_chat.get(session_key)
     if not sesion or sesion.get("clasificado"):
         return
 
     sesion["clasificado"] = True
+    sender_id = sesion["sender_id"]
+    nombre_pagina = sesion.get("nombre_pagina", "Emana. arte")
     historial_texto = "\n".join(sesion["historial"])
     total_mensajes_cliente = len([m for m in sesion["historial"] if m.startswith("Cliente:")])
 
@@ -294,89 +323,96 @@ def clasificar_y_guardar_embudo(sender_id, evento_forzado=None):
             datos.get("categoria_embudo", "3_COTIZO_PERO_NO_CONCRETO"),
             datos.get("motivo_detectado", "Sin respuesta tras 30 min"),
             total_mensajes_cliente,
-            datos.get("estado_final", "Abandonado")
+            datos.get("estado_final", "Abandonado"),
+            nombre_pagina
         ])
     except Exception as e:
         print(f"Error clasificando embudo: {e}")
 
-def reiniciar_temporizador_embudo(sender_id):
+def reiniciar_temporizador_embudo(session_key):
     """Programa la evaluación automática si el cliente deja de escribir por 30 minutos (1800 seg)."""
-    if sender_id in temporizadores_embudo:
-        temporizadores_embudo[sender_id].cancel()
-    timer = threading.Timer(1800.0, clasificar_y_guardar_embudo, args=[sender_id])
+    if session_key in temporizadores_embudo:
+        temporizadores_embudo[session_key].cancel()
+    timer = threading.Timer(1800.0, clasificar_y_guardar_embudo, args=[session_key])
     timer.daemon = True
     timer.start()
-    temporizadores_embudo[sender_id] = timer
+    temporizadores_embudo[session_key] = timer
 
-def cancelar_remarketing(sender_id):
+def cancelar_remarketing(session_key):
     """Cancela cualquier mensaje de remarketing pendiente para el cliente."""
-    timers = temporizadores_remarketing.pop(sender_id, None)
+    timers = temporizadores_remarketing.pop(session_key, None)
     if timers:
         for t in timers.values():
             t.cancel()
 
-def enviar_mensaje_remarketing(sender_id, toque):
+def enviar_mensaje_remarketing(session_key, toque):
     """Envía el mensaje de recuperación a 1 hora (toque 1) o a 24 horas (toque 2) si sigue sin cerrar venta."""
-    sesion = sesiones_chat.get(sender_id)
-    if not sesion or sender_id in chats_pausados:
+    sesion = sesiones_chat.get(session_key)
+    if not sesion:
         return
     if sesion.get("venta_registrada") or sesion.get("no_interesado") or sesion.get("derivado"):
         return
 
+    sender_id = sesion["sender_id"]
+    page_token = sesion["page_token"]
+    nombre_pagina = sesion["nombre_pagina"]
+
     if toque == 1:
         mensaje_rmk = (
-            "¡Hola! 👋 ¿Te quedó alguna duda sobre lo que vimos en *Emana Artes*? ✨\n"
+            f"¡Hola! 👋 ¿Te quedó alguna duda sobre lo que vimos en *{nombre_pagina}*? ✨\n"
             f"Recuerda que en Bogotá y Soacha pagas 100% contraentrega. Si prefieres atención directa, escríbenos aquí: {WHATSAPP_ATENCION}"
         )
     else:
         mensaje_rmk = (
-            "¡Hola! 😊 Aún tenemos unidades disponibles en *Emana Artes* para entrega mañana con pago contraentrega en Bogotá o Soacha.\n"
+            f"¡Hola! 😊 Aún tenemos unidades disponibles en *{nombre_pagina}* para entrega mañana con pago contraentrega en Bogotá o Soacha.\n"
             f"¿Te ayudo a agendar tu pedido o nos escribes por WhatsApp? {WHATSAPP_ATENCION} 🌿"
         )
 
-    enviar_a_messenger(sender_id, {"text": mensaje_rmk})
+    enviar_a_messenger(sender_id, {"text": mensaje_rmk}, page_token)
     sesion["historial"].append(f"Bot (Remarketing {toque}): {mensaje_rmk}")
 
-def programar_remarketing(sender_id):
+def programar_remarketing(session_key):
     """Programa toque 1 a 1 hora del último mensaje y toque 2 a 23.5 horas del chat inicial."""
-    sesion = sesiones_chat.get(sender_id)
+    sesion = sesiones_chat.get(session_key)
     if not sesion or sesion.get("venta_registrada") or sesion.get("no_interesado") or sesion.get("derivado"):
-        cancelar_remarketing(sender_id)
+        cancelar_remarketing(session_key)
         return
 
-    if sender_id not in temporizadores_remarketing:
-        temporizadores_remarketing[sender_id] = {}
+    if session_key not in temporizadores_remarketing:
+        temporizadores_remarketing[session_key] = {}
 
-    if "toque_1" in temporizadores_remarketing[sender_id]:
-        temporizadores_remarketing[sender_id]["toque_1"].cancel()
-    t1 = threading.Timer(3600.0, enviar_mensaje_remarketing, args=[sender_id, 1])
+    if "toque_1" in temporizadores_remarketing[session_key]:
+        temporizadores_remarketing[session_key]["toque_1"].cancel()
+    t1 = threading.Timer(3600.0, enviar_mensaje_remarketing, args=[session_key, 1])
     t1.daemon = True
     t1.start()
-    temporizadores_remarketing[sender_id]["toque_1"] = t1
+    temporizadores_remarketing[session_key]["toque_1"] = t1
 
-    if "toque_2" not in temporizadores_remarketing[sender_id]:
-        t2 = threading.Timer(84600.0, enviar_mensaje_remarketing, args=[sender_id, 2])
+    if "toque_2" not in temporizadores_remarketing[session_key]:
+        t2 = threading.Timer(84600.0, enviar_mensaje_remarketing, args=[session_key, 2])
         t2.daemon = True
         t2.start()
-        temporizadores_remarketing[sender_id]["toque_2"] = t2
+        temporizadores_remarketing[session_key]["toque_2"] = t2
 
-def cancelar_recuperacion(sender_id):
-    """Cancela cualquier recuperación pendiente cuando el cliente escribe o el chat se pausa/deriva."""
-    timer = temporizadores_recuperacion.pop(sender_id, None)
+def cancelar_recuperacion(session_key):
+    """Cancela cualquier recuperación pendiente cuando el cliente escribe."""
+    timer = temporizadores_recuperacion.pop(session_key, None)
     if timer:
         timer.cancel()
-    if sender_id in sesiones_chat:
-        sesiones_chat[sender_id]["pendiente_recuperacion"] = False
+    if session_key in sesiones_chat:
+        sesiones_chat[session_key]["pendiente_recuperacion"] = False
 
-def ejecutar_recuperacion_chat(sender_id, intento=1):
+def ejecutar_recuperacion_chat(session_key, intento=1):
     """Retoma automáticamente la conversación cuando pasa la saturación de IA sin perder la memoria."""
-    sesion = sesiones_chat.get(sender_id)
+    sesion = sesiones_chat.get(session_key)
     if not sesion or not sesion.get("pendiente_recuperacion"):
         return
-    if sender_id in chats_pausados or sesion.get("derivado") or sesion.get("no_interesado"):
-        cancelar_recuperacion(sender_id)
+    if sesion.get("no_interesado"):
+        cancelar_recuperacion(session_key)
         return
 
+    nombre_pagina = sesion["nombre_pagina"]
+    instrucciones_pagina = INSTRUCCIONES_SISTEMA.replace("{NOMBRE_TIENDA}", nombre_pagina)
     historial_formateado = "\n".join(sesion["historial"])
     prompt_recuperacion = (
         "Historial de la conversación hasta ahora:\n"
@@ -390,33 +426,33 @@ def ejecutar_recuperacion_chat(sender_id, intento=1):
     try:
         texto_ia = llamar_gemini_con_respaldo(
             contents=prompt_recuperacion,
-            system_instruction=INSTRUCCIONES_SISTEMA,
+            system_instruction=instrucciones_pagina,
             temperature=0.1
         )
         sesion["pendiente_recuperacion"] = False
-        temporizadores_recuperacion.pop(sender_id, None)
+        temporizadores_recuperacion.pop(session_key, None)
         sesion["historial"].append(f"Bot: {texto_ia}")
-        procesar_salida_ia(sender_id, sesion, texto_ia)
+        procesar_salida_ia(session_key, sesion, texto_ia)
     except Exception as e:
-        print(f"Recuperación intento {intento} aún con saturación para {sender_id}: {e}")
+        print(f"Recuperación intento {intento} aún con saturación para {session_key}: {e}")
         if intento == 1:
-            t2 = threading.Timer(180.0, ejecutar_recuperacion_chat, args=[sender_id, 2])
+            t2 = threading.Timer(180.0, ejecutar_recuperacion_chat, args=[session_key, 2])
             t2.daemon = True
             t2.start()
-            temporizadores_recuperacion[sender_id] = t2
+            temporizadores_recuperacion[session_key] = t2
         else:
             sesion["pendiente_recuperacion"] = False
-            temporizadores_recuperacion.pop(sender_id, None)
+            temporizadores_recuperacion.pop(session_key, None)
 
-def programar_recuperacion_chat(sender_id):
+def programar_recuperacion_chat(session_key):
     """Programa el primer intento de recuperación automática a los 3 minutos (180 seg)."""
-    cancelar_recuperacion(sender_id)
-    if sender_id in sesiones_chat:
-        sesiones_chat[sender_id]["pendiente_recuperacion"] = True
-    t1 = threading.Timer(180.0, ejecutar_recuperacion_chat, args=[sender_id, 1])
+    cancelar_recuperacion(session_key)
+    if session_key in sesiones_chat:
+        sesiones_chat[session_key]["pendiente_recuperacion"] = True
+    t1 = threading.Timer(180.0, ejecutar_recuperacion_chat, args=[session_key, 1])
     t1.daemon = True
     t1.start()
-    temporizadores_recuperacion[sender_id] = t1
+    temporizadores_recuperacion[session_key] = t1
 
 def extraer_resumen_datos(historial_texto, tipo_evento):
     prompt = f"""
@@ -426,7 +462,10 @@ def extraer_resumen_datos(historial_texto, tipo_evento):
 - nombre (si no lo dio, pon "No especificado")
 - telefono (si no lo dio, pon "No especificado")
 - ciudad_direccion (ciudad, barrio o dirección completa)
-- detalle_pedido (productos, cantidades, total y método de pago si aplica)
+- detalle_pedido (texto con saltos de línea usando \\n, formato lista estricta por cada producto así:
+"• [Cantidad] | [Nombre exacto del artículo] | $[Subtotal del artículo]"
+Y en la última línea agrega:
+"Domicilio: $[valor] | Total: $[valor] | Pago: [método]" si es pedido confirmado, o los datos relevantes si es mayorista/nacional/especializado)
 
     Conversación:
     {historial_texto}
@@ -464,8 +503,9 @@ def enviar_alertas(titulo, mensaje_alerta):
         except Exception as e:
             print(f"Error WhatsApp: {e}")
 
-def enviar_a_messenger(recipient_id, payload_message):
-    url = f"https://graph.facebook.com/v21.0/me/messages?access_token={PAGE_ACCESS_TOKEN}"
+def enviar_a_messenger(recipient_id, payload_message, page_token=None):
+    token = page_token or PAGE_ACCESS_TOKEN
+    url = f"https://graph.facebook.com/v21.0/me/messages?access_token={token}"
     headers = {"Content-Type": "application/json"}
     data = {"recipient": {"id": recipient_id}, "message": payload_message}
     resp = requests.post(url, json=data, headers=headers)
@@ -473,10 +513,14 @@ def enviar_a_messenger(recipient_id, payload_message):
         print(f"Error Messenger API: {resp.text}")
 
 def configurar_menu_messenger():
-    """Configura el botón persistente 'Venta Especializada' en el menú de Messenger."""
-    if not PAGE_ACCESS_TOKEN:
-        return
-    url = f"https://graph.facebook.com/v21.0/me/messenger_profile?access_token={PAGE_ACCESS_TOKEN}"
+    """Configura el botón persistente 'Venta Especializada' en todas las páginas conectadas."""
+    tokens_a_configurar = set()
+    if PAGE_ACCESS_TOKEN:
+        tokens_a_configurar.add(PAGE_ACCESS_TOKEN)
+    for info in PAGINAS_CONFIG.values():
+        if info.get("token"):
+            tokens_a_configurar.add(info["token"])
+
     payload = {
         "get_started": {"payload": "INICIAR_CHAT"},
         "persistent_menu": [
@@ -499,42 +543,72 @@ def configurar_menu_messenger():
             }
         ]
     }
-    try:
-        requests.post(url, json=payload, timeout=10)
-    except Exception as e:
-        print(f"Error configurando menú Messenger: {e}")
+    for token in tokens_a_configurar:
+        try:
+            url = f"https://graph.facebook.com/v21.0/me/messenger_profile?access_token={token}"
+            requests.post(url, json=payload, timeout=10)
+        except Exception as e:
+            print(f"Error configurando menú Messenger: {e}")
 
-def activar_atencion_especializada(sender_id, motivo="Botón Venta Especializada"):
-    """Pausa el bot, alerta a Telegram y entrega enlace de WhatsApp al cliente."""
-    cancelar_remarketing(sender_id)
-    cancelar_recuperacion(sender_id)
-    if sender_id in temporizadores_embudo:
-        temporizadores_embudo[sender_id].cancel()
+def obtener_o_crear_sesion(sender_id, page_id):
+    nombre_pagina, page_token = obtener_info_pagina(page_id)
+    session_key = f"{page_id or 'default'}_{sender_id}"
+    if session_key not in sesiones_chat:
+        sesiones_chat[session_key] = {
+            "sender_id": sender_id,
+            "page_id": page_id,
+            "nombre_pagina": nombre_pagina,
+            "page_token": page_token,
+            "historial": [],
+            "clasificado": False,
+            "venta_registrada": False,
+            "no_interesado": False,
+            "derivado": False,
+            "pendiente_recuperacion": False
+        }
+    else:
+        sesiones_chat[session_key]["nombre_pagina"] = nombre_pagina
+        sesiones_chat[session_key]["page_token"] = page_token
+    return session_key, sesiones_chat[session_key]
 
-    chats_pausados.add(sender_id)
-    if sender_id in sesiones_chat:
-        sesiones_chat[sender_id]["derivado"] = True
+def activar_atencion_especializada(sender_id, page_id, motivo="Botón Venta Especializada"):
+    """Notifica al cliente que pasa a chat especializado, alerta a Telegram y entrega WhatsApp SIN dejar el chat en standby."""
+    session_key, sesion = obtener_o_crear_sesion(sender_id, page_id)
+    cancelar_remarketing(session_key)
+    cancelar_recuperacion(session_key)
+    if session_key in temporizadores_embudo:
+        temporizadores_embudo[session_key].cancel()
+
+    sesion["derivado"] = True
+    nombre_pagina = sesion["nombre_pagina"]
+    page_token = sesion["page_token"]
 
     mensaje_cliente = (
-        "¡Con mucho gusto! ✨ He transferido tu solicitud a nuestro equipo de *Atención Especializada* de Emana Artes. "
-        "Un asesor te responderá por aquí en un momento.\n\n"
-        f"Si deseas atención inmediata por WhatsApp, haz clic aquí: {WHATSAPP_ATENCION}"
+        f"¡Con mucho gusto! ✨ Tu solicitud pasará ahora a nuestro *chat especializado* de {nombre_pagina} para brindarte atención personalizada. "
+        "Un asesor revisará tu caso de inmediato.\n\n"
+        f"Si deseas escribirnos directamente por WhatsApp, haz clic aquí: {WHATSAPP_ATENCION} (o cuéntame por aquí qué referencia necesitas mientras tanto)."
     )
-    enviar_a_messenger(sender_id, {"text": mensaje_cliente})
+    enviar_a_messenger(sender_id, {"text": mensaje_cliente}, page_token)
+    sesion["historial"].append(f"Bot: {mensaje_cliente}")
 
     resumen_msg = (
+        f"🏪 *Página:* {nombre_pagina}\n"
         f"📌 *Motivo:* {motivo}\n"
         f"🆔 *ID Messenger:* {sender_id}\n"
-        f"💡 *Nota:* Bot pausado en este chat. Escribe `/activar` en Messenger cuando termines de atender."
+        f"💡 *Nota:* El bot sigue activo para no dejar al cliente sin respuesta si vuelve a escribir."
     )
-    enviar_alertas("SOLICITUD DE VENTA ESPECIALIZADA", resumen_msg)
+    enviar_alertas(f"CHAT ESPECIALIZADO [{nombre_pagina}]", resumen_msg)
     registrar_en_sheets("Interacciones_y_Mayoristas", [
         hora_colombia(), "VENTA ESPECIALIZADA", sender_id, "Por confirmar",
-        "Por confirmar", "Bogotá/Soacha", motivo
+        "Por confirmar", "Bogotá/Soacha", motivo, nombre_pagina
     ])
 
-def procesar_salida_ia(sender_id, sesion, texto_ia):
+def procesar_salida_ia(session_key, sesion, texto_ia):
     """Procesa etiquetas, adjuntos, alertas, Sheets y temporizadores de cualquier respuesta de IA."""
+    sender_id = sesion["sender_id"]
+    page_token = sesion["page_token"]
+    nombre_pagina = sesion["nombre_pagina"]
+
     evento_detectado = None
     if "[VENTA_CONFIRMADA]" in texto_ia:
         evento_detectado = "VENTA_CONFIRMADA"
@@ -559,98 +633,91 @@ def procesar_salida_ia(sender_id, sesion, texto_ia):
     texto_limpio = re.sub(r"\[VIDEO:\s*https?://[^\]]+\]", "", texto_limpio).strip()
 
     if texto_limpio:
-        enviar_a_messenger(sender_id, {"text": texto_limpio})
-        actualizar_metrica_diaria(sender_id)
+        enviar_a_messenger(sender_id, {"text": texto_limpio}, page_token)
+        actualizar_metrica_diaria(session_key)
 
     for url_foto in fotos:
         enviar_a_messenger(sender_id, {
             "attachment": {"type": "image", "payload": {"url": url_foto.strip(), "is_reusable": True}}
-        })
+        }, page_token)
 
     for url_video in videos:
         enviar_a_messenger(sender_id, {
             "attachment": {"type": "video", "payload": {"url": url_video.strip(), "is_reusable": True}}
-        })
+        }, page_token)
 
     if evento_detectado == "NO_INTERESADO":
         sesion["no_interesado"] = True
-        cancelar_remarketing(sender_id)
-        cancelar_recuperacion(sender_id)
-        reiniciar_temporizador_embudo(sender_id)
+        cancelar_remarketing(session_key)
+        cancelar_recuperacion(session_key)
+        reiniciar_temporizador_embudo(session_key)
         return
 
     if evento_detectado:
-        cancelar_remarketing(sender_id)
-        cancelar_recuperacion(sender_id)
-        if sender_id in temporizadores_embudo:
-            temporizadores_embudo[sender_id].cancel()
+        cancelar_remarketing(session_key)
+        cancelar_recuperacion(session_key)
+        if session_key in temporizadores_embudo:
+            temporizadores_embudo[session_key].cancel()
 
         if evento_detectado in ("MAYORISTA", "ENVIO_NACIONAL", "ATENCION_ESPECIALIZADA"):
-            chats_pausados.add(sender_id)
             sesion["derivado"] = True
 
-        clasificar_y_guardar_embudo(sender_id, evento_forzado=evento_detectado)
+        clasificar_y_guardar_embudo(session_key, evento_forzado=evento_detectado)
 
         historial_completo = "\n".join(sesion["historial"])
         datos = extraer_resumen_datos(historial_completo, evento_detectado)
 
         detalle_texto = datos.get("detalle_pedido", "")
         if isinstance(detalle_texto, (dict, list)):
-            detalle_texto = ", ".join(f"{k}: {v}" for k, v in detalle_texto.items()) if isinstance(detalle_texto, dict) else str(detalle_texto)
+            detalle_texto = "\n".join(f"• {k}: {v}" for k, v in detalle_texto.items()) if isinstance(detalle_texto, dict) else "\n".join(str(x) for x in detalle_texto)
 
         resumen_msg = (
+            f"🏪 *Página:* {nombre_pagina}\n"
             f"👤 *Cliente:* {datos.get('nombre')}\n"
             f"📱 *WhatsApp:* {datos.get('telefono')}\n"
             f"📍 *Ubicación:* {datos.get('ciudad_direccion')}\n"
-            f"📦 *Detalle:* {detalle_texto}\n"
+            f"📦 *Detalle:*\n{detalle_texto}\n"
             f"🆔 *ID Messenger:* {sender_id}"
         )
 
         if evento_detectado == "VENTA_CONFIRMADA":
-            titulo_alerta = "MODIFICACIÓN DE PEDIDO CONFIRMADO" if sesion.get("venta_registrada") else "NUEVO PEDIDO CONFIRMADO (BOGOTÁ/SOACHA)"
+            titulo_alerta = f"MODIFICACIÓN DE PEDIDO [{nombre_pagina}]" if sesion.get("venta_registrada") else f"NUEVO PEDIDO CONFIRMADO [{nombre_pagina}]"
             sesion["venta_registrada"] = True
             enviar_alertas(titulo_alerta, resumen_msg)
             registrar_en_sheets("Pedidos_Confirmados", [
                 hora_colombia(), sender_id, datos.get("nombre"), datos.get("telefono"),
-                datos.get("ciudad_direccion"), detalle_texto, "Por Despachar"
+                datos.get("ciudad_direccion"), detalle_texto, "Por Despachar", nombre_pagina
             ])
         elif evento_detectado == "MAYORISTA":
-            enviar_alertas("SOLICITUD CLIENTE MAYORISTA (+12 UNDS)", resumen_msg)
+            enviar_alertas(f"CLIENTE MAYORISTA [{nombre_pagina}]", resumen_msg)
             registrar_en_sheets("Interacciones_y_Mayoristas", [
                 hora_colombia(), "MAYORISTA", sender_id, datos.get("nombre"),
-                datos.get("telefono"), datos.get("ciudad_direccion"), detalle_texto
+                datos.get("telefono"), datos.get("ciudad_direccion"), detalle_texto, nombre_pagina
             ])
         elif evento_detectado == "ENVIO_NACIONAL":
-            enviar_alertas("CLIENTE ENVÍO NACIONAL (FUERA DE BOGOTÁ)", resumen_msg)
+            enviar_alertas(f"ENVÍO NACIONAL [{nombre_pagina}]", resumen_msg)
             registrar_en_sheets("Interacciones_y_Mayoristas", [
                 hora_colombia(), "ENVIO NACIONAL", sender_id, datos.get("nombre"),
-                datos.get("telefono"), datos.get("ciudad_direccion"), detalle_texto
+                datos.get("telefono"), datos.get("ciudad_direccion"), detalle_texto, nombre_pagina
             ])
         elif evento_detectado == "ATENCION_ESPECIALIZADA":
-            enviar_alertas("ATENCIÓN ESPECIALIZADA (COJINES / MODELO ESPECÍFICO)", resumen_msg)
+            enviar_alertas(f"ATENCIÓN ESPECIALIZADA [{nombre_pagina}]", resumen_msg)
             registrar_en_sheets("Interacciones_y_Mayoristas", [
                 hora_colombia(), "ATENCION ESPECIALIZADA", sender_id, datos.get("nombre"),
-                datos.get("telefono"), datos.get("ciudad_direccion"), detalle_texto
+                datos.get("telefono"), datos.get("ciudad_direccion"), detalle_texto, nombre_pagina
             ])
     elif not sesion.get("venta_registrada"):
-        reiniciar_temporizador_embudo(sender_id)
-        programar_remarketing(sender_id)
+        reiniciar_temporizador_embudo(session_key)
+        programar_remarketing(session_key)
 
-def procesar_respuesta_bot(sender_id, mensaje_usuario):
-    cancelar_recuperacion(sender_id)
+def procesar_respuesta_bot(sender_id, mensaje_usuario, page_id=None):
+    session_key, sesion = obtener_o_crear_sesion(sender_id, page_id)
+    cancelar_recuperacion(session_key)
 
-    if sender_id not in sesiones_chat:
-        sesiones_chat[sender_id] = {
-            "historial": [],
-            "clasificado": False,
-            "venta_registrada": False,
-            "no_interesado": False,
-            "derivado": False,
-            "pendiente_recuperacion": False
-        }
-
-    sesion = sesiones_chat[sender_id]
     sesion["historial"].append(f"Cliente: {mensaje_usuario}")
+    nombre_pagina = sesion["nombre_pagina"]
+    page_token = sesion["page_token"]
+    instrucciones_pagina = INSTRUCCIONES_SISTEMA.replace("{NOMBRE_TIENDA}", nombre_pagina)
 
     historial_formateado = "\n".join(sesion["historial"])
     prompt_conversacion = (
@@ -662,37 +729,38 @@ def procesar_respuesta_bot(sender_id, mensaje_usuario):
     try:
         texto_ia = llamar_gemini_con_respaldo(
             contents=prompt_conversacion,
-            system_instruction=INSTRUCCIONES_SISTEMA,
+            system_instruction=instrucciones_pagina,
             temperature=0.1
         )
         sesion["historial"].append(f"Bot: {texto_ia}")
     except Exception as e:
-        print(f"Error Gemini (Contingencia activa): {e}")
+        print(f"Error Gemini (Contingencia activa en {nombre_pagina}): {e}")
         mensaje_contingencia = (
-            "¡Hola! 👋 En *Emana Artes* tenemos disponibilidad inmediata con *pago 100% contraentrega* en Bogotá ($10.000) y Soacha ($15.000):\n\n"
+            f"¡Hola! 👋 En *{nombre_pagina}* tenemos disponibilidad inmediata con *pago 100% contraentrega* en Bogotá ($10.000) y Soacha ($15.000):\n\n"
             "• Pampas Eternizadas: $12.900 c/u\n"
             "• Jarrones en Mimbre: 40cm ($40.000) | 50cm ($48.000) | 60cm ($55.000) | 80cm ($75.000)\n"
             "• Lámpara Boho Mimbre 40cm: $45.000\n"
             "• Cojines Decorativos: $27.000 c/u (3 o más a $25.000 c/u)\n\n"
             f"Para atención inmediata escríbenos por WhatsApp: {WHATSAPP_ATENCION} (o en unos minutos retomamos tu consulta aquí mismo)."
         )
-        enviar_a_messenger(sender_id, {"text": mensaje_contingencia})
+        enviar_a_messenger(sender_id, {"text": mensaje_contingencia}, page_token)
         sesion["historial"].append(f"Bot (Contingencia): {mensaje_contingencia}")
         enviar_alertas(
-            "AVISO CONTINGENCIA IA (CHAT EN RECUPERACIÓN)",
+            f"AVISO CONTINGENCIA IA [{nombre_pagina}]",
             f"🆔 *ID Messenger:* {sender_id}\n💬 *Mensaje cliente:* {mensaje_usuario}\n🔄 Se programó recuperación automática en 3 min."
         )
-        programar_recuperacion_chat(sender_id)
-        reiniciar_temporizador_embudo(sender_id)
+        programar_recuperacion_chat(session_key)
+        reiniciar_temporizador_embudo(session_key)
         return
 
-    procesar_salida_ia(sender_id, sesion, texto_ia)
+    procesar_salida_ia(session_key, sesion, texto_ia)
 
 # --- RUTAS DEL SERVIDOR WEBHOOK ---
 
 @app.route("/", methods=["GET"])
 def home():
-    return "Servidor Bot Emana Artes Activo ✅", 200
+    paginas_activas = ", ".join(p["nombre"] for p in PAGINAS_CONFIG.values()) or "Modo página única"
+    return f"Servidor Bot Activo ✅ | Páginas: {paginas_activas}", 200
 
 @app.route("/webhook", methods=["GET"])
 def verificar_webhook():
@@ -708,19 +776,13 @@ def recibir_mensajes():
     data = request.get_json()
     if data.get("object") == "page":
         for entry in data.get("entry", []):
+            page_id = entry.get("id")
             for event in entry.get("messaging", []):
                 if event.get("message") and event["message"].get("is_echo"):
-                    texto_admin = event["message"].get("text", "").strip().lower()
-                    recipient_id = event["recipient"]["id"]
-                    if texto_admin == "/activar" and recipient_id in chats_pausados:
-                        chats_pausados.remove(recipient_id)
-                        if recipient_id in sesiones_chat:
-                            sesiones_chat[recipient_id]["clasificado"] = False
-                            sesiones_chat[recipient_id]["derivado"] = False
                     continue
 
                 sender_id = event.get("sender", {}).get("id")
-                if not sender_id or sender_id in chats_pausados:
+                if not sender_id or sender_id == page_id:
                     continue
 
                 if event.get("postback"):
@@ -729,7 +791,7 @@ def recibir_mensajes():
                     if payload_btn == "VENTA_ESPECIALIZADA_BTN" or "especializada" in titulo_boton.lower():
                         threading.Thread(
                             target=activar_atencion_especializada,
-                            args=(sender_id, "Botón Venta Especializada"),
+                            args=(sender_id, page_id, "Botón Venta Especializada"),
                             daemon=True
                         ).start()
                         continue
@@ -739,7 +801,7 @@ def recibir_mensajes():
                     if mensaje_armado:
                         threading.Thread(
                             target=procesar_respuesta_bot,
-                            args=(sender_id, mensaje_armado),
+                            args=(sender_id, mensaje_armado, page_id),
                             daemon=True
                         ).start()
                     continue
@@ -749,7 +811,7 @@ def recibir_mensajes():
                     if texto.strip().lower() in ("venta especializada", "atencion especializada", "atención especializada"):
                         threading.Thread(
                             target=activar_atencion_especializada,
-                            args=(sender_id, f"Solicitud directa: {texto.strip()}"),
+                            args=(sender_id, page_id, f"Solicitud directa: {texto.strip()}"),
                             daemon=True
                         ).start()
                         continue
@@ -766,13 +828,14 @@ def recibir_mensajes():
                         mensaje_final = f"{texto}{contexto_producto}".strip()
                         threading.Thread(
                             target=procesar_respuesta_bot,
-                            args=(sender_id, mensaje_final),
+                            args=(sender_id, mensaje_final, page_id),
                             daemon=True
                         ).start()
                     elif adjuntos:
+                        _, page_token = obtener_info_pagina(page_id)
                         threading.Thread(
                             target=enviar_a_messenger,
-                            args=(sender_id, {"text": "Recibí tu archivo. ¿Me cuentas por texto qué referencia te gustaría cotizar o pedir?"}),
+                            args=(sender_id, {"text": "Recibí tu archivo. ¿Me cuentas por texto qué referencia te gustaría cotizar o pedir?"}, page_token),
                             daemon=True
                         ).start()
 
