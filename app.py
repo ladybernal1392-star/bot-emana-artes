@@ -19,9 +19,9 @@ VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "bot_bogota_2026")
 PAGE_ACCESS_TOKEN = os.environ.get("PAGE_ACCESS_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-# Configuración Multi-Página (Emana. arte, Emana Trend y futura 3ra página sin tocar código)
+# Configuración Multi-Página (EmanaTrend, Emana Trend y futura 3ra página sin tocar código)
 PAGE_ID_1 = os.environ.get("PAGE_ID_EMANA_ARTE", "").strip()
-PAGE_NAME_1 = os.environ.get("PAGE_NAME_EMANA_ARTE", "Emana. arte").strip()
+PAGE_NAME_1 = os.environ.get("PAGE_NAME_EMANA_ARTE", "EmanaTrend").strip()
 PAGE_TOKEN_1 = os.environ.get("PAGE_TOKEN_EMANA_ARTE", "").strip()
 
 PAGE_ID_2 = os.environ.get("PAGE_ID_EMANA_TREND", "").strip()
@@ -45,7 +45,7 @@ def obtener_info_pagina(page_id):
     """Devuelve nombre y token de la página origen, con respaldo a PAGE_ACCESS_TOKEN."""
     if page_id and page_id in PAGINAS_CONFIG:
         return PAGINAS_CONFIG[page_id]["nombre"], PAGINAS_CONFIG[page_id]["token"]
-    return "Emana. arte", PAGE_ACCESS_TOKEN
+    return "EmanaTrend", PAGE_ACCESS_TOKEN
 
 # Alertas (Telegram y WhatsApp)
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
@@ -288,7 +288,7 @@ def clasificar_y_guardar_embudo(session_key, evento_forzado=None):
 
     sesion["clasificado"] = True
     sender_id = sesion["sender_id"]
-    nombre_pagina = sesion.get("nombre_pagina", "Emana. arte")
+    nombre_pagina = sesion.get("nombre_pagina", "EmanaTrend")
     historial_texto = "\n".join(sesion["historial"])
     total_mensajes_cliente = len([m for m in sesion["historial"] if m.startswith("Cliente:")])
 
@@ -785,6 +785,18 @@ def recibir_mensajes():
                 if not sender_id or sender_id == page_id:
                     continue
 
+                if event.get("referral"):
+                    ref_producto = event["referral"].get("ref", "").strip()
+                    if ref_producto:
+                        producto_legible = ref_producto.replace("_", " ")
+                        mensaje_armado = f"Hola, vengo del enlace directo por: {producto_legible} (Referencia de publicación: {ref_producto}). Muéstrame disponibilidad, precios y fotos/video."
+                        threading.Thread(
+                            target=procesar_respuesta_bot,
+                            args=(sender_id, mensaje_armado, page_id),
+                            daemon=True
+                        ).start()
+                    continue
+
                 if event.get("postback"):
                     payload_btn = event["postback"].get("payload", "")
                     titulo_boton = event["postback"].get("title", "")
@@ -796,8 +808,15 @@ def recibir_mensajes():
                         ).start()
                         continue
 
-                    ref_producto = event["postback"].get("referral", {}).get("ref", "")
-                    mensaje_armado = f"{titulo_boton} (Referencia de publicación: {ref_producto})" if ref_producto else titulo_boton
+                    ref_producto = event["postback"].get("referral", {}).get("ref", "").strip()
+                    if ref_producto:
+                        producto_legible = ref_producto.replace("_", " ")
+                        mensaje_armado = f"Hola, vengo del enlace directo por: {producto_legible} (Referencia de publicación: {ref_producto}). Muéstrame disponibilidad, precios y fotos/video."
+                    elif payload_btn == "INICIAR_CHAT":
+                        mensaje_armado = "Hola, me interesa conocer los productos disponibles."
+                    else:
+                        mensaje_armado = titulo_boton
+
                     if mensaje_armado:
                         threading.Thread(
                             target=procesar_respuesta_bot,
